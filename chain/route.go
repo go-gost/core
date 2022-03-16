@@ -11,6 +11,7 @@ import (
 	"github.com/go-gost/core/common/util/udp"
 	"github.com/go-gost/core/connector"
 	"github.com/go-gost/core/logger"
+	"github.com/go-gost/core/metrics"
 )
 
 var (
@@ -18,8 +19,9 @@ var (
 )
 
 type Route struct {
-	nodes    []*Node
+	chain    *Chain
 	ifceName string
+	nodes    []*Node
 	logger   logger.Logger
 }
 
@@ -74,6 +76,12 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 	if r.Len() == 0 {
 		return nil, ErrEmptyRoute
 	}
+
+	defer func() {
+		if err != nil && r.chain != nil {
+			metrics.ChainErrors(r.chain.name).Inc()
+		}
+	}()
 
 	network := "ip"
 	node := r.nodes[0]

@@ -5,7 +5,15 @@ type Chainer interface {
 }
 
 type Chain struct {
+	name   string
 	groups []*NodeGroup
+}
+
+func NewChain(name string, groups ...*NodeGroup) *Chain {
+	return &Chain{
+		name:   name,
+		groups: groups,
+	}
 }
 
 func (c *Chain) AddNodeGroup(group *NodeGroup) {
@@ -17,7 +25,9 @@ func (c *Chain) Route(network, address string) (r *Route) {
 		return
 	}
 
-	r = &Route{}
+	r = &Route{
+		chain: c,
+	}
 	for _, group := range c.groups {
 		node := group.Next()
 		if node == nil {

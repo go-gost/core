@@ -39,6 +39,7 @@ type Metrics struct {
 	inputBytes       *prometheus.CounterVec
 	outputBytes      *prometheus.CounterVec
 	handlerErrors    *prometheus.CounterVec
+	chainErrors      *prometheus.CounterVec
 }
 
 func NewMetrics() *Metrics {
@@ -93,6 +94,12 @@ func NewMetrics() *Metrics {
 				Help: "Total service handler errors",
 			},
 			[]string{"host", "service"}),
+		chainErrors: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "gost_chain_errors_total",
+				Help: "Total chain errors",
+			},
+			[]string{"host", "chain"}),
 	}
 	prometheus.MustRegister(m.services)
 	prometheus.MustRegister(m.requests)
@@ -101,6 +108,7 @@ func NewMetrics() *Metrics {
 	prometheus.MustRegister(m.inputBytes)
 	prometheus.MustRegister(m.outputBytes)
 	prometheus.MustRegister(m.handlerErrors)
+	prometheus.MustRegister(m.chainErrors)
 	return m
 }
 
@@ -178,5 +186,16 @@ func HandlerErrors(service string) Counter {
 		With(prometheus.Labels{
 			"host":    metrics.host,
 			"service": service,
+		})
+}
+
+func ChainErrors(chain string) Counter {
+	if metrics == nil || metrics.chainErrors == nil {
+		return nilCounter
+	}
+	return metrics.chainErrors.
+		With(prometheus.Labels{
+			"host":  metrics.host,
+			"chain": chain,
 		})
 }
