@@ -9,7 +9,7 @@ import (
 	"github.com/go-gost/core/handler"
 	"github.com/go-gost/core/listener"
 	"github.com/go-gost/core/logger"
-	"github.com/go-gost/metrics"
+	"github.com/go-gost/core/metrics"
 )
 
 type options struct {
