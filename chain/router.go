@@ -133,6 +133,10 @@ func (r *Router) Bind(ctx context.Context, network, address string, opts ...conn
 		var route *Route
 		if r.chain != nil {
 			route = r.chain.Route(network, address)
+			if route.Len() == 0 {
+				err = ErrEmptyRoute
+				return
+			}
 		}
 
 		if r.logger.IsLevelEnabled(logger.DebugLevel) {
