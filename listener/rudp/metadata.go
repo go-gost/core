@@ -8,7 +8,7 @@ import (
 
 const (
 	defaultTTL            = 5 * time.Second
-	defaultReadBufferSize = 1024
+	defaultReadBufferSize = 1500
 	defaultReadQueueSize  = 128
 	defaultBacklog        = 128
 )
@@ -18,7 +18,6 @@ type metadata struct {
 	readBufferSize int
 	readQueueSize  int
 	backlog        int
-	retryCount     int
 }
 
 func (l *rudpListener) parseMetadata(md mdata.Metadata) (err error) {
@@ -27,7 +26,6 @@ func (l *rudpListener) parseMetadata(md mdata.Metadata) (err error) {
 		readBufferSize = "readBufferSize"
 		readQueueSize  = "readQueueSize"
 		backlog        = "backlog"
-		retryCount     = "retry"
 	)
 
 	l.md.ttl = mdata.GetDuration(md, ttl)
@@ -49,6 +47,5 @@ func (l *rudpListener) parseMetadata(md mdata.Metadata) (err error) {
 		l.md.backlog = defaultBacklog
 	}
 
-	l.md.retryCount = mdata.GetInt(md, retryCount)
 	return
 }
