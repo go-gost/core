@@ -10,14 +10,17 @@ import (
 	"github.com/go-gost/core/logger"
 )
 
+const (
+	DefaultTimeout = 15 * time.Second
+)
+
 var (
-	DefaultNetDialer = &NetDialer{
-		Timeout: 30 * time.Second,
-	}
+	DefaultNetDialer = &NetDialer{}
 )
 
 type NetDialer struct {
 	Interface string
+	Mark      int
 	Timeout   time.Duration
 	DialFunc  func(ctx context.Context, network, addr string) (net.Conn, error)
 	Logger    logger.Logger
@@ -27,6 +30,10 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (net.Conn, e
 	if d == nil {
 		d = DefaultNetDialer
 	}
+	if d.Timeout <= 0 {
+		d.Timeout = DefaultTimeout
+	}
+
 	log := d.Logger
 	if log == nil {
 		log = logger.Default()
@@ -39,7 +46,7 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (net.Conn, e
 	if d.DialFunc != nil {
 		return d.DialFunc(ctx, network, addr)
 	}
-	logger.Default().Infof("interface: %s %v/%s", ifceName, ifAddr, network)
+	log.Infof("interface: %s %v/%s", ifceName, ifAddr, network)
 
 	switch network {
 	case "udp", "udp4", "udp6":
@@ -59,17 +66,18 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (net.Conn, e
 		Timeout:   d.Timeout,
 		LocalAddr: ifAddr,
 		Control: func(network, address string, c syscall.RawConn) error {
-			var cerr error
-			err := c.Control(func(fd uintptr) {
-				cerr = bindDevice(fd, ifceName)
+			return c.Control(func(fd uintptr) {
+				if ifceName != "" {
+					if err := bindDevice(fd, ifceName); err != nil {
+						log.Warnf("bind device: %v", err)
+					}
+				}
+				if d.Mark != 0 {
+					if err := setMark(fd, d.Mark); err != nil {
+						log.Warnf("set mark: %v", err)
+					}
+				}
 			})
-			if err != nil {
-				return err
-			}
-			if cerr != nil {
-				return cerr
-			}
-			return nil
 		},
 	}
 	return netd.DialContext(ctx, network, addr)

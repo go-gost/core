@@ -13,10 +13,15 @@ import (
 	"github.com/go-gost/core/resolver"
 )
 
+type SockOpts struct {
+	Mark int
+}
+
 type Router struct {
+	ifceName string
+	sockOpts *SockOpts
 	timeout  time.Duration
 	retries  int
-	ifceName string
 	chain    Chainer
 	resolver resolver.Resolver
 	hosts    hosts.HostMapper
@@ -35,6 +40,11 @@ func (r *Router) WithRetries(retries int) *Router {
 
 func (r *Router) WithInterface(ifceName string) *Router {
 	r.ifceName = ifceName
+	return r
+}
+
+func (r *Router) WithSockOpts(so *SockOpts) *Router {
+	r.sockOpts = so
 	return r
 }
 
@@ -109,10 +119,11 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 		if route == nil {
 			route = &Route{}
 		}
-		route.ifceName = r.ifceName
 		route.logger = r.logger
-
-		conn, err = route.Dial(ctx, network, address)
+		conn, err = route.Dial(ctx, network, address,
+			InterfaceDialOption(r.ifceName),
+			SockOptsDialOption(r.sockOpts),
+		)
 		if err == nil {
 			break
 		}

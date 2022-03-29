@@ -19,24 +19,33 @@ var (
 )
 
 type Route struct {
-	chain    *Chain
-	ifceName string
-	nodes    []*Node
-	logger   logger.Logger
+	chain  *Chain
+	nodes  []*Node
+	logger logger.Logger
 }
 
 func (r *Route) addNode(node *Node) {
 	r.nodes = append(r.nodes, node)
 }
 
-func (r *Route) Dial(ctx context.Context, network, address string) (net.Conn, error) {
+func (r *Route) Dial(ctx context.Context, network, address string, opts ...DialOption) (net.Conn, error) {
+	var options DialOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	if r.Len() == 0 {
 		netd := dialer.NetDialer{
-			Timeout: 30 * time.Second,
+			Timeout:   options.Timeout,
+			Interface: options.Interface,
+		}
+		if options.SockOpts != nil {
+			netd.Mark = options.SockOpts.Mark
 		}
 		if r != nil {
-			netd.Interface = r.ifceName
+			netd.Logger = r.logger
 		}
+
 		return netd.Dial(ctx, network, address)
 	}
 
@@ -196,5 +205,31 @@ func (r *Route) bindLocal(ctx context.Context, network, address string, opts ...
 	default:
 		err := fmt.Errorf("network %s unsupported", network)
 		return nil, err
+	}
+}
+
+type DialOptions struct {
+	Timeout   time.Duration
+	Interface string
+	SockOpts  *SockOpts
+}
+
+type DialOption func(opts *DialOptions)
+
+func TimeoutDialOption(d time.Duration) DialOption {
+	return func(opts *DialOptions) {
+		opts.Timeout = d
+	}
+}
+
+func InterfaceDialOption(ifName string) DialOption {
+	return func(opts *DialOptions) {
+		opts.Interface = ifName
+	}
+}
+
+func SockOptsDialOption(so *SockOpts) DialOption {
+	return func(opts *DialOptions) {
+		opts.SockOpts = so
 	}
 }

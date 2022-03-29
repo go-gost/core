@@ -13,7 +13,7 @@ import (
 	"github.com/go-gost/core/logger"
 )
 
-func (h *httpHandler) handleUDP(ctx context.Context, conn net.Conn, network, address string, log logger.Logger) error {
+func (h *httpHandler) handleUDP(ctx context.Context, conn net.Conn, log logger.Logger) error {
 	log = log.WithFields(map[string]any{
 		"cmd": "udp",
 	})

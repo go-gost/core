@@ -154,7 +154,7 @@ func (h *httpHandler) handleRequest(ctx context.Context, conn net.Conn, req *htt
 	}
 
 	if network == "udp" {
-		return h.handleUDP(ctx, conn, network, req.Host, log)
+		return h.handleUDP(ctx, conn, log)
 	}
 
 	if req.Method == "PRI" ||

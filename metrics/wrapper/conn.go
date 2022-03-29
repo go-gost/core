@@ -38,6 +38,15 @@ func (c *serverConn) Write(b []byte) (n int, err error) {
 	return
 }
 
+func (c *serverConn) SyscallConn() (rc syscall.RawConn, err error) {
+	if sc, ok := c.Conn.(syscall.Conn); ok {
+		rc, err = sc.SyscallConn()
+		return
+	}
+	err = errUnsupport
+	return
+}
+
 type packetConn struct {
 	net.PacketConn
 	service string
@@ -168,7 +177,7 @@ func (c *udpConn) WriteMsgUDP(b, oob []byte, addr *net.UDPAddr) (n, oobn int, er
 }
 
 func (c *udpConn) SyscallConn() (rc syscall.RawConn, err error) {
-	if nc, ok := c.PacketConn.(syscallConn); ok {
+	if nc, ok := c.PacketConn.(syscall.Conn); ok {
 		return nc.SyscallConn()
 	}
 	err = errUnsupport
@@ -189,8 +198,8 @@ type UDPConn interface {
 	readUDP
 	writeUDP
 	setBuffer
-	syscallConn
 	remoteAddr
+	syscall.Conn
 }
 
 type setBuffer interface {
@@ -206,10 +215,6 @@ type readUDP interface {
 type writeUDP interface {
 	WriteToUDP(b []byte, addr *net.UDPAddr) (int, error)
 	WriteMsgUDP(b, oob []byte, addr *net.UDPAddr) (n, oobn int, err error)
-}
-
-type syscallConn interface {
-	SyscallConn() (syscall.RawConn, error)
 }
 
 type remoteAddr interface {

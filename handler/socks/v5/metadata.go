@@ -34,7 +34,7 @@ func (h *socks5Handler) parseMetadata(md mdata.Metadata) (err error) {
 	if bs := mdata.GetInt(md, udpBufferSize); bs > 0 {
 		h.md.udpBufferSize = int(math.Min(math.Max(float64(bs), 512), 64*1024))
 	} else {
-		h.md.udpBufferSize = 1024
+		h.md.udpBufferSize = 1500
 	}
 
 	h.md.compatibilityMode = mdata.GetBool(md, compatibilityMode)

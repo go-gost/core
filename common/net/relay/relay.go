@@ -41,7 +41,7 @@ func (r *UDPRelay) SetBufferSize(n int) {
 func (r *UDPRelay) Run() (err error) {
 	bufSize := r.bufferSize
 	if bufSize <= 0 {
-		bufSize = 1024
+		bufSize = 1500
 	}
 
 	errc := make(chan error, 2)

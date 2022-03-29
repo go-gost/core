@@ -13,6 +13,7 @@ import (
 type Transport struct {
 	addr      string
 	ifceName  string
+	sockOpts  *SockOpts
 	route     *Route
 	dialer    dialer.Dialer
 	connector connector.Connector
@@ -29,6 +30,11 @@ func (tr *Transport) WithInterface(ifceName string) *Transport {
 	return tr
 }
 
+func (tr *Transport) WithSockOpts(so *SockOpts) *Transport {
+	tr.sockOpts = so
+	return tr
+}
+
 func (tr *Transport) WithDialer(dialer dialer.Dialer) *Transport {
 	tr.dialer = dialer
 	return tr
@@ -42,7 +48,10 @@ func (tr *Transport) WithConnector(connector connector.Connector) *Transport {
 func (tr *Transport) Dial(ctx context.Context, addr string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
 		Interface: tr.ifceName,
-		Timeout:   30 * time.Second,
+		Timeout:   15 * time.Second,
+	}
+	if tr.sockOpts != nil {
+		netd.Mark = tr.sockOpts.Mark
 	}
 	if tr.route.Len() > 0 {
 		netd.DialFunc = func(ctx context.Context, network, addr string) (net.Conn, error) {
