@@ -46,7 +46,7 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (net.Conn, e
 	if d.DialFunc != nil {
 		return d.DialFunc(ctx, network, addr)
 	}
-	log.Infof("interface: %s %v/%s", ifceName, ifAddr, network)
+	log.Debugf("interface: %s %v/%s", ifceName, ifAddr, network)
 
 	switch network {
 	case "udp", "udp4", "udp6":

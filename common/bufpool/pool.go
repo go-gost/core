@@ -35,6 +35,15 @@ var (
 			},
 		},
 		{
+			size: 2048,
+			pool: sync.Pool{
+				New: func() any {
+					b := make([]byte, 2048)
+					return &b
+				},
+			},
+		},
+		{
 			size: 4096,
 			pool: sync.Pool{
 				New: func() any {
