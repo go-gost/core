@@ -9,8 +9,8 @@ import (
 	"github.com/go-gost/core/common/bufpool"
 )
 
-// Conn is a server side connection for UDP client peer, it implements net.Conn and net.PacketConn.
-type Conn struct {
+// conn is a server side connection for UDP client peer, it implements net.Conn and net.PacketConn.
+type conn struct {
 	net.PacketConn
 	localAddr  net.Addr
 	remoteAddr net.Addr
@@ -18,19 +18,21 @@ type Conn struct {
 	idle       int32       // indicate the connection is idle
 	closed     chan struct{}
 	closeMutex sync.Mutex
+	keepAlive  bool
 }
 
-func NewConn(c net.PacketConn, localAddr, remoteAddr net.Addr, queueSize int) *Conn {
-	return &Conn{
+func newConn(c net.PacketConn, laddr, remoteAddr net.Addr, queueSize int, keepAlive bool) *conn {
+	return &conn{
 		PacketConn: c,
-		localAddr:  localAddr,
+		localAddr:  laddr,
 		remoteAddr: remoteAddr,
 		rc:         make(chan []byte, queueSize),
 		closed:     make(chan struct{}),
+		keepAlive:  keepAlive,
 	}
 }
 
-func (c *Conn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
+func (c *conn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
 	select {
 	case bb := <-c.rc:
 		n = copy(b, bb)
@@ -47,16 +49,20 @@ func (c *Conn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
 	return
 }
 
-func (c *Conn) Read(b []byte) (n int, err error) {
+func (c *conn) Read(b []byte) (n int, err error) {
 	n, _, err = c.ReadFrom(b)
 	return
 }
 
-func (c *Conn) Write(b []byte) (n int, err error) {
-	return c.WriteTo(b, c.remoteAddr)
+func (c *conn) Write(b []byte) (n int, err error) {
+	n, err = c.WriteTo(b, c.remoteAddr)
+	if !c.keepAlive {
+		c.Close()
+	}
+	return
 }
 
-func (c *Conn) Close() error {
+func (c *conn) Close() error {
 	c.closeMutex.Lock()
 	defer c.closeMutex.Unlock()
 
@@ -68,19 +74,19 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-func (c *Conn) LocalAddr() net.Addr {
+func (c *conn) LocalAddr() net.Addr {
 	return c.localAddr
 }
 
-func (c *Conn) RemoteAddr() net.Addr {
+func (c *conn) RemoteAddr() net.Addr {
 	return c.remoteAddr
 }
 
-func (c *Conn) IsIdle() bool {
+func (c *conn) IsIdle() bool {
 	return atomic.LoadInt32(&c.idle) > 0
 }
 
-func (c *Conn) SetIdle(idle bool) {
+func (c *conn) SetIdle(idle bool) {
 	v := int32(0)
 	if idle {
 		v = 1
@@ -88,7 +94,7 @@ func (c *Conn) SetIdle(idle bool) {
 	atomic.StoreInt32(&c.idle, v)
 }
 
-func (c *Conn) WriteQueue(b []byte) error {
+func (c *conn) WriteQueue(b []byte) error {
 	select {
 	case c.rc <- b:
 		return nil

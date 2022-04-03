@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/go-gost/core/common/util/udp"
+	"github.com/go-gost/core/common/net/udp"
 	"github.com/go-gost/core/connector"
 	"github.com/go-gost/core/internal/util/mux"
 	"github.com/go-gost/core/internal/util/socks"
@@ -80,13 +80,16 @@ func (c *socks5Connector) bindUDP(ctx context.Context, conn net.Conn, network, a
 		return nil, err
 	}
 
-	ln := udp.NewListener(
-		socks.UDPTunClientPacketConn(conn),
-		laddr,
-		opts.Backlog,
-		opts.UDPDataQueueSize, opts.UDPDataBufferSize,
-		opts.UDPConnTTL,
-		log)
+	ln := udp.NewListener(socks.UDPTunClientPacketConn(conn),
+		&udp.ListenConfig{
+			Addr:           laddr,
+			Backlog:        opts.Backlog,
+			ReadQueueSize:  opts.UDPDataQueueSize,
+			ReadBufferSize: opts.UDPDataBufferSize,
+			TTL:            opts.UDPConnTTL,
+			KeepAlive:      true,
+			Logger:         log,
+		})
 
 	return ln, nil
 }

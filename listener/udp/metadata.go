@@ -14,19 +14,20 @@ const (
 )
 
 type metadata struct {
-	ttl time.Duration
-
 	readBufferSize int
 	readQueueSize  int
 	backlog        int
+	keepalive      bool
+	ttl            time.Duration
 }
 
 func (l *udpListener) parseMetadata(md mdata.Metadata) (err error) {
 	const (
-		ttl            = "ttl"
 		readBufferSize = "readBufferSize"
 		readQueueSize  = "readQueueSize"
 		backlog        = "backlog"
+		keepAlive      = "keepAlive"
+		ttl            = "ttl"
 	)
 
 	l.md.ttl = mdata.GetDuration(md, ttl)
@@ -47,6 +48,7 @@ func (l *udpListener) parseMetadata(md mdata.Metadata) (err error) {
 	if l.md.backlog <= 0 {
 		l.md.backlog = defaultBacklog
 	}
+	l.md.keepalive = mdata.GetBool(md, keepAlive)
 
 	return
 }

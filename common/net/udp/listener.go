@@ -9,30 +9,37 @@ import (
 	"github.com/go-gost/core/logger"
 )
 
+type ListenConfig struct {
+	Addr           net.Addr
+	Backlog        int
+	ReadQueueSize  int
+	ReadBufferSize int
+	TTL            time.Duration
+	KeepAlive      bool
+	Logger         logger.Logger
+}
 type listener struct {
-	addr           net.Addr
-	conn           net.PacketConn
-	cqueue         chan net.Conn
-	readQueueSize  int
-	readBufferSize int
-	connPool       *ConnPool
-	mux            sync.Mutex
-	closed         chan struct{}
-	errChan        chan error
-	logger         logger.Logger
+	conn     net.PacketConn
+	cqueue   chan net.Conn
+	connPool *connPool
+	mux      sync.Mutex
+	closed   chan struct{}
+	errChan  chan error
+	config   *ListenConfig
 }
 
-func NewListener(conn net.PacketConn, addr net.Addr, backlog, dataQueueSize, dataBufferSize int, ttl time.Duration, logger logger.Logger) net.Listener {
+func NewListener(conn net.PacketConn, cfg *ListenConfig) net.Listener {
+	if cfg == nil {
+		cfg = &ListenConfig{}
+	}
+
 	ln := &listener{
-		conn:           conn,
-		addr:           addr,
-		cqueue:         make(chan net.Conn, backlog),
-		connPool:       NewConnPool(ttl).WithLogger(logger),
-		readQueueSize:  dataQueueSize,
-		readBufferSize: dataBufferSize,
-		closed:         make(chan struct{}),
-		errChan:        make(chan error, 1),
-		logger:         logger,
+		conn:     conn,
+		cqueue:   make(chan net.Conn, cfg.Backlog),
+		connPool: newConnPool(cfg.TTL).WithLogger(cfg.Logger),
+		closed:   make(chan struct{}),
+		errChan:  make(chan error, 1),
+		config:   cfg,
 	}
 	go ln.listenLoop()
 
@@ -61,7 +68,7 @@ func (ln *listener) listenLoop() {
 		default:
 		}
 
-		b := bufpool.Get(ln.readBufferSize)
+		b := bufpool.Get(ln.config.ReadBufferSize)
 
 		n, raddr, err := ln.conn.ReadFrom(*b)
 		if err != nil {
@@ -77,13 +84,16 @@ func (ln *listener) listenLoop() {
 		}
 
 		if err := c.WriteQueue((*b)[:n]); err != nil {
-			ln.logger.Warn("data discarded: ", err)
+			ln.config.Logger.Warn("data discarded: ", err)
 		}
 	}
 }
 
 func (ln *listener) Addr() net.Addr {
-	return ln.addr
+	if ln.config.Addr != nil {
+		return ln.config.Addr
+	}
+	return ln.conn.LocalAddr()
 }
 
 func (ln *listener) Close() error {
@@ -98,7 +108,7 @@ func (ln *listener) Close() error {
 	return nil
 }
 
-func (ln *listener) getConn(raddr net.Addr) *Conn {
+func (ln *listener) getConn(raddr net.Addr) *conn {
 	ln.mux.Lock()
 	defer ln.mux.Unlock()
 
@@ -107,14 +117,14 @@ func (ln *listener) getConn(raddr net.Addr) *Conn {
 		return c
 	}
 
-	c = NewConn(ln.conn, ln.addr, raddr, ln.readQueueSize)
+	c = newConn(ln.conn, ln.Addr(), raddr, ln.config.ReadQueueSize, ln.config.KeepAlive)
 	select {
 	case ln.cqueue <- c:
 		ln.connPool.Set(raddr.String(), c)
 		return c
 	default:
 		c.Close()
-		ln.logger.Warnf("connection queue is full, client %s discarded", raddr)
+		ln.config.Logger.Warnf("connection queue is full, client %s discarded", raddr)
 		return nil
 	}
 }

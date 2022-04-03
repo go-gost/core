@@ -7,15 +7,15 @@ import (
 	"github.com/go-gost/core/logger"
 )
 
-type ConnPool struct {
+type connPool struct {
 	m      sync.Map
 	ttl    time.Duration
 	closed chan struct{}
 	logger logger.Logger
 }
 
-func NewConnPool(ttl time.Duration) *ConnPool {
-	p := &ConnPool{
+func newConnPool(ttl time.Duration) *connPool {
+	p := &connPool{
 		ttl:    ttl,
 		closed: make(chan struct{}),
 	}
@@ -23,28 +23,28 @@ func NewConnPool(ttl time.Duration) *ConnPool {
 	return p
 }
 
-func (p *ConnPool) WithLogger(logger logger.Logger) *ConnPool {
+func (p *connPool) WithLogger(logger logger.Logger) *connPool {
 	p.logger = logger
 	return p
 }
 
-func (p *ConnPool) Get(key any) (c *Conn, ok bool) {
+func (p *connPool) Get(key any) (c *conn, ok bool) {
 	v, ok := p.m.Load(key)
 	if ok {
-		c, ok = v.(*Conn)
+		c, ok = v.(*conn)
 	}
 	return
 }
 
-func (p *ConnPool) Set(key any, c *Conn) {
+func (p *connPool) Set(key any, c *conn) {
 	p.m.Store(key, c)
 }
 
-func (p *ConnPool) Delete(key any) {
+func (p *connPool) Delete(key any) {
 	p.m.Delete(key)
 }
 
-func (p *ConnPool) Close() {
+func (p *connPool) Close() {
 	select {
 	case <-p.closed:
 		return
@@ -54,14 +54,14 @@ func (p *ConnPool) Close() {
 	close(p.closed)
 
 	p.m.Range(func(k, v any) bool {
-		if c, ok := v.(*Conn); ok && c != nil {
+		if c, ok := v.(*conn); ok && c != nil {
 			c.Close()
 		}
 		return true
 	})
 }
 
-func (p *ConnPool) idleCheck() {
+func (p *connPool) idleCheck() {
 	ticker := time.NewTicker(p.ttl)
 	defer ticker.Stop()
 
@@ -71,7 +71,7 @@ func (p *ConnPool) idleCheck() {
 			size := 0
 			idles := 0
 			p.m.Range(func(key, value any) bool {
-				c, ok := value.(*Conn)
+				c, ok := value.(*conn)
 				if !ok || c == nil {
 					p.Delete(key)
 					return true

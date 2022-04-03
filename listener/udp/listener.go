@@ -3,7 +3,7 @@ package udp
 import (
 	"net"
 
-	"github.com/go-gost/core/common/util/udp"
+	"github.com/go-gost/core/common/net/udp"
 	"github.com/go-gost/core/listener"
 	"github.com/go-gost/core/logger"
 	md "github.com/go-gost/core/metadata"
@@ -50,13 +50,14 @@ func (l *udpListener) Init(md md.Metadata) (err error) {
 	}
 	conn = metrics.WrapPacketConn(l.options.Service, conn)
 
-	l.ln = udp.NewListener(
-		conn,
-		laddr,
-		l.md.backlog,
-		l.md.readQueueSize, l.md.readBufferSize,
-		l.md.ttl,
-		l.logger)
+	l.ln = udp.NewListener(conn, &udp.ListenConfig{
+		Backlog:        l.md.backlog,
+		ReadQueueSize:  l.md.readQueueSize,
+		ReadBufferSize: l.md.readBufferSize,
+		KeepAlive:      l.md.keepalive,
+		TTL:            l.md.ttl,
+		Logger:         l.logger,
+	})
 	return
 }
 

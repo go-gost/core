@@ -197,7 +197,10 @@ func (ex *exchanger) exchange(ctx context.Context, msg []byte) ([]byte, error) {
 		c = tls.Client(c, ex.options.tlsConfig)
 	}
 
-	conn := &dns.Conn{Conn: c}
+	conn := &dns.Conn{
+		UDPSize: 1024,
+		Conn:    c,
+	}
 
 	if _, err = conn.Write(msg); err != nil {
 		return nil, err

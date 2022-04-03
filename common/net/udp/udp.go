@@ -1,4 +1,4 @@
-package net
+package udp
 
 import (
 	"io"
@@ -6,7 +6,7 @@ import (
 	"syscall"
 )
 
-type UDPConn interface {
+type Conn interface {
 	net.PacketConn
 	io.Reader
 	io.Writer

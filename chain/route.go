@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-gost/core/common/net/dialer"
-	"github.com/go-gost/core/common/util/udp"
+	"github.com/go-gost/core/common/net/udp"
 	"github.com/go-gost/core/connector"
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/metrics"
@@ -198,9 +198,14 @@ func (r *Route) bindLocal(ctx context.Context, network, address string, opts ...
 			"network": network,
 			"address": address,
 		})
-		ln := udp.NewListener(conn, addr,
-			options.Backlog, options.UDPDataQueueSize, options.UDPDataBufferSize,
-			options.UDPConnTTL, logger)
+		ln := udp.NewListener(conn, &udp.ListenConfig{
+			Backlog:        options.Backlog,
+			ReadQueueSize:  options.UDPDataQueueSize,
+			ReadBufferSize: options.UDPDataBufferSize,
+			TTL:            options.UDPConnTTL,
+			KeepAlive:      true,
+			Logger:         logger,
+		})
 		return ln, err
 	default:
 		err := fmt.Errorf("network %s unsupported", network)
