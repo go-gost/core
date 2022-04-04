@@ -100,6 +100,8 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 		node.Marker.Mark()
 		return
 	}
+
+	start := time.Now()
 	cc, err := node.Transport.Dial(ctx, addr)
 	if err != nil {
 		node.Marker.Mark()
@@ -113,6 +115,9 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 		return
 	}
 	node.Marker.Reset()
+
+	metrics.ChainNodeConnectSeconds(r.chain.name, node.Name).
+		Observe(time.Since(start).Seconds())
 
 	preNode := node
 	for _, node := range r.nodes[1:] {

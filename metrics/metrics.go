@@ -31,15 +31,16 @@ type Observer interface {
 }
 
 type Metrics struct {
-	host             string
-	services         *prometheus.GaugeVec
-	requests         *prometheus.CounterVec
-	requestsInFlight *prometheus.GaugeVec
-	requestSeconds   *prometheus.HistogramVec
-	inputBytes       *prometheus.CounterVec
-	outputBytes      *prometheus.CounterVec
-	handlerErrors    *prometheus.CounterVec
-	chainErrors      *prometheus.CounterVec
+	host                     string
+	services                 *prometheus.GaugeVec
+	requests                 *prometheus.CounterVec
+	requestsInFlight         *prometheus.GaugeVec
+	requestSeconds           *prometheus.HistogramVec
+	chainNodeConnectSecconds *prometheus.HistogramVec
+	inputBytes               *prometheus.CounterVec
+	outputBytes              *prometheus.CounterVec
+	handlerErrors            *prometheus.CounterVec
+	chainErrors              *prometheus.CounterVec
 }
 
 func NewMetrics() *Metrics {
@@ -76,6 +77,15 @@ func NewMetrics() *Metrics {
 				},
 			},
 			[]string{"host", "service"}),
+		chainNodeConnectSecconds: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name: "gost_chain_node_connect_duration_seconds",
+				Help: "Distribution of chain node connect latencies",
+				Buckets: []float64{
+					.01, .05, .1, .25, .5, 1, 1.5, 2, 5, 10, 15, 30, 60,
+				},
+			},
+			[]string{"host", "chain", "node"}),
 		inputBytes: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "gost_service_transfer_input_bytes_total",
@@ -105,6 +115,7 @@ func NewMetrics() *Metrics {
 	prometheus.MustRegister(m.requests)
 	prometheus.MustRegister(m.requestsInFlight)
 	prometheus.MustRegister(m.requestSeconds)
+	prometheus.MustRegister(m.chainNodeConnectSecconds)
 	prometheus.MustRegister(m.inputBytes)
 	prometheus.MustRegister(m.outputBytes)
 	prometheus.MustRegister(m.handlerErrors)
@@ -153,6 +164,18 @@ func RequestSeconds(service string) Observer {
 		With(prometheus.Labels{
 			"host":    metrics.host,
 			"service": service,
+		})
+}
+
+func ChainNodeConnectSeconds(chain, node string) Observer {
+	if metrics == nil || metrics.chainNodeConnectSecconds == nil {
+		return nilObserver
+	}
+	return metrics.chainNodeConnectSecconds.
+		With(prometheus.Labels{
+			"host":  metrics.host,
+			"chain": chain,
+			"node":  node,
 		})
 }
 
