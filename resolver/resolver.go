@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrInvalid = errors.New("resolver is invalid")
+	ErrInvalid = errors.New("invalid resolver")
 )
 
 type Resolver interface {

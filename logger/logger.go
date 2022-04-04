@@ -1,9 +1,5 @@
 package logger
 
-import (
-	"io"
-)
-
 // LogFormat is format type
 type LogFormat string
 
@@ -44,28 +40,14 @@ type Logger interface {
 	IsLevelEnabled(level LogLevel) bool
 }
 
-type LoggerOptions struct {
-	Output io.Writer
-	Format LogFormat
-	Level  LogLevel
+var (
+	defaultLogger Logger
+)
+
+func Default() Logger {
+	return defaultLogger
 }
 
-type LoggerOption func(opts *LoggerOptions)
-
-func OutputLoggerOption(out io.Writer) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.Output = out
-	}
-}
-
-func FormatLoggerOption(format LogFormat) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.Format = format
-	}
-}
-
-func LevelLoggerOption(level LogLevel) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.Level = level
-	}
+func SetDefault(logger Logger) {
+	defaultLogger = logger
 }
