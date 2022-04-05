@@ -13,7 +13,7 @@ var (
 	errUnsupport = errors.New("unsupported operation")
 )
 
-// ServerConn is a server side Conn with metrics supported.
+// serverConn is a server side Conn with metrics supported.
 type serverConn struct {
 	net.Conn
 	service string

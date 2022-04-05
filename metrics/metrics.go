@@ -17,15 +17,19 @@ const (
 type Labels map[string]string
 
 var (
-	metrics Metrics = Noop()
+	global Metrics = Noop()
 )
 
 func SetGlobal(m Metrics) {
 	if m != nil {
-		metrics = m
+		global = m
 	} else {
-		metrics = Noop()
+		global = Noop()
 	}
+}
+
+func Global() Metrics {
+	return global
 }
 
 type Gauge interface {
@@ -51,13 +55,13 @@ type Metrics interface {
 }
 
 func GetCounter(name MetricName, labels Labels) Counter {
-	return metrics.Counter(name, labels)
+	return global.Counter(name, labels)
 }
 
 func GetGauge(name MetricName, labels Labels) Gauge {
-	return metrics.Gauge(name, labels)
+	return global.Gauge(name, labels)
 }
 
 func GetObserver(name MetricName, labels Labels) Observer {
-	return metrics.Observer(name, labels)
+	return global.Observer(name, labels)
 }

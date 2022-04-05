@@ -1,6 +1,10 @@
 package wrapper
 
-import "net"
+import (
+	"net"
+
+	"github.com/go-gost/core/metrics"
+)
 
 type listener struct {
 	service string
@@ -18,6 +22,11 @@ func (ln *listener) Accept() (net.Conn, error) {
 	c, err := ln.Listener.Accept()
 	if err != nil {
 		return nil, err
+	}
+
+	// metrics is not enabled
+	if metrics.Global() == metrics.Noop() {
+		return c, nil
 	}
 	return WrapConn(ln.service, c), nil
 }
