@@ -1,17 +1,31 @@
 package metrics
 
-import (
-	"os"
+type MetricName string
 
-	"github.com/prometheus/client_golang/prometheus"
+const (
+	MetricServicesGauge                     MetricName = "gost_services"
+	MetricServiceRequestsCounter            MetricName = "gost_service_requests_total"
+	MetricServiceRequestsInFlightGauge      MetricName = "gost_service_requests_in_flight"
+	MetricServiceRequestsDurationObserver   MetricName = "gost_service_request_duration_seconds"
+	MetricServiceTransferInputBytesCounter  MetricName = "gost_service_transfer_input_bytes_total"
+	MetricServiceTransferOutputBytesCounter MetricName = "gost_service_transfer_output_bytes_total"
+	MetricNodeConnectDurationObserver       MetricName = "gost_chain_node_connect_duration_seconds"
+	MetricServiceHandlerErrorsCounter       MetricName = "gost_service_handler_errors_total"
+	MetricChainErrorsCounter                MetricName = "gost_chain_errors_total"
 )
+
+type Labels map[string]string
 
 var (
-	metrics *Metrics
+	metrics Metrics = Noop()
 )
 
-func SetGlobal(m *Metrics) {
-	metrics = m
+func SetGlobal(m Metrics) {
+	if m != nil {
+		metrics = m
+	} else {
+		metrics = Noop()
+	}
 }
 
 type Gauge interface {
@@ -30,195 +44,20 @@ type Observer interface {
 	Observe(float64)
 }
 
-type Metrics struct {
-	host                     string
-	services                 *prometheus.GaugeVec
-	requests                 *prometheus.CounterVec
-	requestsInFlight         *prometheus.GaugeVec
-	requestSeconds           *prometheus.HistogramVec
-	chainNodeConnectSecconds *prometheus.HistogramVec
-	inputBytes               *prometheus.CounterVec
-	outputBytes              *prometheus.CounterVec
-	handlerErrors            *prometheus.CounterVec
-	chainErrors              *prometheus.CounterVec
+type Metrics interface {
+	Counter(name MetricName, labels Labels) Counter
+	Gauge(name MetricName, labels Labels) Gauge
+	Observer(name MetricName, labels Labels) Observer
 }
 
-func NewMetrics() *Metrics {
-	host, _ := os.Hostname()
-	m := &Metrics{
-		host: host,
-		services: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "gost_services",
-				Help: "Current number of services",
-			},
-			[]string{"host"}),
-
-		requests: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "gost_service_requests_total",
-				Help: "Total number of requests",
-			},
-			[]string{"host", "service"}),
-
-		requestsInFlight: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "gost_service_requests_in_flight",
-				Help: "Current in-flight requests",
-			},
-			[]string{"host", "service"}),
-
-		requestSeconds: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name: "gost_service_request_duration_seconds",
-				Help: "Distribution of request latencies",
-				Buckets: []float64{
-					.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 15, 30, 60,
-				},
-			},
-			[]string{"host", "service"}),
-		chainNodeConnectSecconds: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name: "gost_chain_node_connect_duration_seconds",
-				Help: "Distribution of chain node connect latencies",
-				Buckets: []float64{
-					.01, .05, .1, .25, .5, 1, 1.5, 2, 5, 10, 15, 30, 60,
-				},
-			},
-			[]string{"host", "chain", "node"}),
-		inputBytes: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "gost_service_transfer_input_bytes_total",
-				Help: "Total service input data transfer size in bytes",
-			},
-			[]string{"host", "service"}),
-		outputBytes: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "gost_service_transfer_output_bytes_total",
-				Help: "Total service output data transfer size in bytes",
-			},
-			[]string{"host", "service"}),
-		handlerErrors: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "gost_service_handler_errors_total",
-				Help: "Total service handler errors",
-			},
-			[]string{"host", "service"}),
-		chainErrors: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "gost_chain_errors_total",
-				Help: "Total chain errors",
-			},
-			[]string{"host", "chain"}),
-	}
-	prometheus.MustRegister(m.services)
-	prometheus.MustRegister(m.requests)
-	prometheus.MustRegister(m.requestsInFlight)
-	prometheus.MustRegister(m.requestSeconds)
-	prometheus.MustRegister(m.chainNodeConnectSecconds)
-	prometheus.MustRegister(m.inputBytes)
-	prometheus.MustRegister(m.outputBytes)
-	prometheus.MustRegister(m.handlerErrors)
-	prometheus.MustRegister(m.chainErrors)
-	return m
+func GetCounter(name MetricName, labels Labels) Counter {
+	return metrics.Counter(name, labels)
 }
 
-func Services() Gauge {
-	if metrics == nil || metrics.services == nil {
-		return nilGauge
-	}
-	return metrics.services.
-		With(prometheus.Labels{
-			"host": metrics.host,
-		})
+func GetGauge(name MetricName, labels Labels) Gauge {
+	return metrics.Gauge(name, labels)
 }
 
-func Requests(service string) Counter {
-	if metrics == nil || metrics.requests == nil {
-		return nilCounter
-	}
-
-	return metrics.requests.
-		With(prometheus.Labels{
-			"host":    metrics.host,
-			"service": service,
-		})
-}
-
-func RequestsInFlight(service string) Gauge {
-	if metrics == nil || metrics.requestsInFlight == nil {
-		return nilGauge
-	}
-	return metrics.requestsInFlight.
-		With(prometheus.Labels{
-			"host":    metrics.host,
-			"service": service,
-		})
-}
-
-func RequestSeconds(service string) Observer {
-	if metrics == nil || metrics.requestSeconds == nil {
-		return nilObserver
-	}
-	return metrics.requestSeconds.
-		With(prometheus.Labels{
-			"host":    metrics.host,
-			"service": service,
-		})
-}
-
-func ChainNodeConnectSeconds(chain, node string) Observer {
-	if metrics == nil || metrics.chainNodeConnectSecconds == nil {
-		return nilObserver
-	}
-	return metrics.chainNodeConnectSecconds.
-		With(prometheus.Labels{
-			"host":  metrics.host,
-			"chain": chain,
-			"node":  node,
-		})
-}
-
-func InputBytes(service string) Counter {
-	if metrics == nil || metrics.inputBytes == nil {
-		return nilCounter
-	}
-	return metrics.inputBytes.
-		With(prometheus.Labels{
-			"host":    metrics.host,
-			"service": service,
-		})
-}
-
-func OutputBytes(service string) Counter {
-	if metrics == nil || metrics.outputBytes == nil {
-		return nilCounter
-	}
-	return metrics.outputBytes.
-		With(prometheus.Labels{
-			"host":    metrics.host,
-			"service": service,
-		})
-}
-
-func HandlerErrors(service string) Counter {
-	if metrics == nil || metrics.handlerErrors == nil {
-		return nilCounter
-	}
-	return metrics.handlerErrors.
-		With(prometheus.Labels{
-			"host":    metrics.host,
-			"service": service,
-		})
-}
-
-func ChainErrors(chain string) Counter {
-	if metrics == nil || metrics.chainErrors == nil {
-		return nilCounter
-	}
-	return metrics.chainErrors.
-		With(prometheus.Labels{
-			"host":  metrics.host,
-			"chain": chain,
-		})
+func GetObserver(name MetricName, labels Labels) Observer {
+	return metrics.Observer(name, labels)
 }

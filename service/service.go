@@ -66,8 +66,12 @@ func (s *service) Close() error {
 }
 
 func (s *service) Serve() error {
-	metrics.Services().Inc()
-	defer metrics.Services().Dec()
+	if v := metrics.GetGauge(
+		metrics.MetricServicesGauge,
+		metrics.Labels{}); v != nil {
+		v.Inc()
+		defer v.Dec()
+	}
 
 	var tempDelay time.Duration
 	for {
@@ -98,22 +102,34 @@ func (s *service) Serve() error {
 		}
 
 		go func() {
-			metrics.Requests(s.name).Inc()
+			if v := metrics.GetCounter(metrics.MetricServiceRequestsCounter,
+				metrics.Labels{"service": s.name}); v != nil {
+				v.Inc()
+			}
 
-			metrics.RequestsInFlight(s.name).Inc()
-			defer metrics.RequestsInFlight(s.name).Dec()
+			if v := metrics.GetGauge(metrics.MetricServiceRequestsInFlightGauge,
+				metrics.Labels{"service": s.name}); v != nil {
+				v.Inc()
+				defer v.Dec()
+			}
 
 			start := time.Now()
-			defer func() {
-				metrics.RequestSeconds(s.name).Observe(time.Since(start).Seconds())
-			}()
+			if v := metrics.GetObserver(metrics.MetricServiceRequestsDurationObserver,
+				metrics.Labels{"service": s.name}); v != nil {
+				defer func() {
+					v.Observe(float64(time.Since(start).Seconds()))
+				}()
+			}
 
 			if err := s.handler.Handle(
 				context.Background(),
 				conn,
 			); err != nil {
 				s.options.logger.Error(err)
-				metrics.HandlerErrors(s.name).Inc()
+				if v := metrics.GetCounter(metrics.MetricServiceHandlerErrorsCounter,
+					metrics.Labels{"service": s.name}); v != nil {
+					v.Inc()
+				}
 			}
 		}()
 	}

@@ -88,7 +88,10 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 
 	defer func() {
 		if err != nil && r.chain != nil {
-			metrics.ChainErrors(r.chain.name).Inc()
+			if v := metrics.GetCounter(metrics.MetricChainErrorsCounter,
+				metrics.Labels{"chain": r.chain.name}); v != nil {
+				v.Inc()
+			}
 		}
 	}()
 
@@ -116,8 +119,10 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 	}
 	node.Marker.Reset()
 
-	metrics.ChainNodeConnectSeconds(r.chain.name, node.Name).
-		Observe(time.Since(start).Seconds())
+	if v := metrics.GetObserver(metrics.MetricNodeConnectDurationObserver,
+		metrics.Labels{"chain": r.chain.name, "node": node.Name}); v != nil {
+		v.Observe(time.Since(start).Seconds())
+	}
 
 	preNode := node
 	for _, node := range r.nodes[1:] {
