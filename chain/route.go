@@ -86,17 +86,17 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 		return nil, ErrEmptyRoute
 	}
 
+	network := "ip"
+	node := r.nodes[0]
+
 	defer func() {
 		if err != nil && r.chain != nil {
 			if v := metrics.GetCounter(metrics.MetricChainErrorsCounter,
-				metrics.Labels{"chain": r.chain.name}); v != nil {
+				metrics.Labels{"chain": r.chain.name, "node": node.Name}); v != nil {
 				v.Inc()
 			}
 		}
 	}()
-
-	network := "ip"
-	node := r.nodes[0]
 
 	addr, err := resolve(ctx, network, node.Addr, node.Resolver, node.Hosts, r.logger)
 	if err != nil {
