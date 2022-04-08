@@ -119,9 +119,11 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 	}
 	node.Marker.Reset()
 
-	if v := metrics.GetObserver(metrics.MetricNodeConnectDurationObserver,
-		metrics.Labels{"chain": r.chain.name, "node": node.Name}); v != nil {
-		v.Observe(time.Since(start).Seconds())
+	if r.chain != nil {
+		if v := metrics.GetObserver(metrics.MetricNodeConnectDurationObserver,
+			metrics.Labels{"chain": r.chain.name, "node": node.Name}); v != nil {
+			v.Observe(time.Since(start).Seconds())
+		}
 	}
 
 	preNode := node
