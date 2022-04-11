@@ -10,6 +10,7 @@ import (
 	"github.com/go-gost/core/connector"
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/logger"
+	"github.com/go-gost/core/recorder"
 	"github.com/go-gost/core/resolver"
 )
 
@@ -18,14 +19,15 @@ type SockOpts struct {
 }
 
 type Router struct {
-	ifceName string
-	sockOpts *SockOpts
-	timeout  time.Duration
-	retries  int
-	chain    Chainer
-	resolver resolver.Resolver
-	hosts    hosts.HostMapper
-	logger   logger.Logger
+	ifceName  string
+	sockOpts  *SockOpts
+	timeout   time.Duration
+	retries   int
+	chain     Chainer
+	resolver  resolver.Resolver
+	hosts     hosts.HostMapper
+	recorders []recorder.RecorderObject
+	logger    logger.Logger
 }
 
 func (r *Router) WithTimeout(timeout time.Duration) *Router {
@@ -70,22 +72,52 @@ func (r *Router) Hosts() hosts.HostMapper {
 	return nil
 }
 
+func (r *Router) WithRecorder(recorders ...recorder.RecorderObject) *Router {
+	r.recorders = recorders
+	return r
+}
+
 func (r *Router) WithLogger(logger logger.Logger) *Router {
 	r.logger = logger
 	return r
 }
 
 func (r *Router) Dial(ctx context.Context, network, address string) (conn net.Conn, err error) {
+	host := address
+	if h, _, _ := net.SplitHostPort(address); h != "" {
+		host = h
+	}
+	r.record(ctx, recorder.RecorderServiceRouterDialAddress, []byte(host))
+
 	conn, err = r.dial(ctx, network, address)
 	if err != nil {
+		r.record(ctx, recorder.RecorderServiceRouterDialAddressError, []byte(host))
 		return
 	}
+
 	if network == "udp" || network == "udp4" || network == "udp6" {
 		if _, ok := conn.(net.PacketConn); !ok {
 			return &packetConn{conn}, nil
 		}
 	}
 	return
+}
+
+func (r *Router) record(ctx context.Context, name string, data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	for _, rec := range r.recorders {
+		if rec.Record == name {
+			err := rec.Recorder.Record(ctx, data)
+			if err != nil {
+				r.logger.Errorf("record %s: %v", name, err)
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *Router) dial(ctx context.Context, network, address string) (conn net.Conn, err error) {
