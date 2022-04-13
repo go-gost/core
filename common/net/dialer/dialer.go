@@ -56,7 +56,31 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (net.Conn, e
 				laddr, _ = ifAddr.(*net.UDPAddr)
 			}
 
-			return net.ListenUDP(network, laddr)
+			c, err := net.ListenUDP(network, laddr)
+			if err != nil {
+				return nil, err
+			}
+			sc, err := c.SyscallConn()
+			if err != nil {
+				log.Error(err)
+				return nil, err
+			}
+			err = sc.Control(func(fd uintptr) {
+				if ifceName != "" {
+					if err := bindDevice(fd, ifceName); err != nil {
+						log.Warnf("bind device: %v", err)
+					}
+				}
+				if d.Mark != 0 {
+					if err := setMark(fd, d.Mark); err != nil {
+						log.Warnf("set mark: %v", err)
+					}
+				}
+			})
+			if err != nil {
+				log.Error(err)
+			}
+			return c, nil
 		}
 	case "tcp", "tcp4", "tcp6":
 	default:
