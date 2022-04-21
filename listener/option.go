@@ -7,18 +7,20 @@ import (
 	"github.com/go-gost/core/admission"
 	"github.com/go-gost/core/auth"
 	"github.com/go-gost/core/chain"
+	"github.com/go-gost/core/limiter"
 	"github.com/go-gost/core/logger"
 )
 
 type Options struct {
-	Addr      string
-	Auther    auth.Authenticator
-	Auth      *url.Userinfo
-	TLSConfig *tls.Config
-	Admission admission.Admission
-	Chain     chain.Chainer
-	Logger    logger.Logger
-	Service   string
+	Addr        string
+	Auther      auth.Authenticator
+	Auth        *url.Userinfo
+	TLSConfig   *tls.Config
+	Admission   admission.Admission
+	RateLimiter limiter.RateLimiter
+	Chain       chain.Chainer
+	Logger      logger.Logger
+	Service     string
 }
 
 type Option func(opts *Options)
@@ -50,6 +52,12 @@ func TLSConfigOption(tlsConfig *tls.Config) Option {
 func AdmissionOption(admission admission.Admission) Option {
 	return func(opts *Options) {
 		opts.Admission = admission
+	}
+}
+
+func RateLimiterOption(rlimiter limiter.RateLimiter) Option {
+	return func(opts *Options) {
+		opts.RateLimiter = rlimiter
 	}
 }
 
