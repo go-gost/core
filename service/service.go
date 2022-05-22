@@ -10,10 +10,12 @@ import (
 	"github.com/go-gost/core/listener"
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/metrics"
+	"github.com/go-gost/core/recorder"
 )
 
 type options struct {
 	admission admission.Admission
+	recorders []recorder.RecorderObject
 	logger    logger.Logger
 }
 
@@ -22,6 +24,12 @@ type Option func(opts *options)
 func AdmissionOption(admission admission.Admission) Option {
 	return func(opts *options) {
 		opts.admission = admission
+	}
+}
+
+func RecordersOption(recorders ...recorder.RecorderObject) Option {
+	return func(opts *options) {
+		opts.recorders = recorders
 	}
 }
 
@@ -95,6 +103,17 @@ func (s *service) Serve() error {
 		}
 		tempDelay = 0
 
+		for _, rec := range s.options.recorders {
+			host := conn.RemoteAddr().String()
+			if h, _, _ := net.SplitHostPort(host); h != "" {
+				host = h
+			}
+			if rec.Record == recorder.RecorderServiceClientAddress {
+				if err := rec.Recorder.Record(context.Background(), []byte(host)); err != nil {
+					s.options.logger.Errorf("record %s: %v", rec.Record, err)
+				}
+			}
+		}
 		if s.options.admission != nil &&
 			!s.options.admission.Admit(conn.RemoteAddr().String()) {
 			conn.Close()

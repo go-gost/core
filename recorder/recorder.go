@@ -12,6 +12,7 @@ type RecorderObject struct {
 }
 
 const (
+	RecorderServiceClientAddress          = "recorder.service.client.address"
 	RecorderServiceRouterDialAddress      = "recorder.service.router.dial.address"
 	RecorderServiceRouterDialAddressError = "recorder.service.router.dial.address.error"
 )
