@@ -1,5 +1,9 @@
 package metrics
 
+import (
+	"github.com/go-gost/core/common/util"
+)
+
 type MetricName string
 
 const (
@@ -27,17 +31,27 @@ type Labels map[string]string
 
 var (
 	global Metrics = Noop()
+	globals        = make(map[string]Metrics)
 )
 
 func SetGlobal(m Metrics) {
+	var metrics Metrics
+
 	if m != nil {
-		global = m
+		metrics = m
 	} else {
-		global = Noop()
+		metrics = Noop()
 	}
+	global = metrics
+	globals[util.GetGoroutineID()] = metrics
 }
 
 func Global() Metrics {
+	goglobal, exists := globals[util.GetGoroutineID()]
+
+	if exists {
+		return goglobal
+	}
 	return global
 }
 
@@ -64,13 +78,13 @@ type Metrics interface {
 }
 
 func GetCounter(name MetricName, labels Labels) Counter {
-	return global.Counter(name, labels)
+	return Global().Counter(name, labels)
 }
 
 func GetGauge(name MetricName, labels Labels) Gauge {
-	return global.Gauge(name, labels)
+	return Global().Gauge(name, labels)
 }
 
 func GetObserver(name MetricName, labels Labels) Observer {
-	return global.Observer(name, labels)
+	return Global().Observer(name, labels)
 }

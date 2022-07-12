@@ -1,5 +1,9 @@
 package logger
 
+import (
+	"github.com/go-gost/core/common/util"
+)
+
 // LogFormat is format type
 type LogFormat string
 
@@ -42,12 +46,19 @@ type Logger interface {
 
 var (
 	defaultLogger Logger
+	defaultLoggers = make(map[string]Logger)
 )
 
 func Default() Logger {
+	logger, exists := defaultLoggers[util.GetGoroutineID()]
+
+	if exists {
+		return logger
+	}
 	return defaultLogger
 }
 
 func SetDefault(logger Logger) {
 	defaultLogger = logger
+	defaultLoggers[util.GetGoroutineID()] = logger
 }
