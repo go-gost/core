@@ -12,6 +12,10 @@ type listener struct {
 }
 
 func WrapListener(service string, ln net.Listener) net.Listener {
+	if !metrics.IsEnabled() {
+		return ln
+	}
+
 	return &listener{
 		service:  service,
 		Listener: ln,
@@ -24,9 +28,5 @@ func (ln *listener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	// metrics is not enabled
-	if metrics.Global() == metrics.Noop() {
-		return c, nil
-	}
 	return WrapConn(ln.service, c), nil
 }

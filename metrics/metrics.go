@@ -29,7 +29,7 @@ var (
 	global Metrics = Noop()
 )
 
-func SetGlobal(m Metrics) {
+func Init(m Metrics) {
 	if m != nil {
 		global = m
 	} else {
@@ -37,8 +37,8 @@ func SetGlobal(m Metrics) {
 	}
 }
 
-func Global() Metrics {
-	return global
+func IsEnabled() bool {
+	return global != Noop()
 }
 
 type Gauge interface {

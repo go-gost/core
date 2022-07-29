@@ -1,6 +1,8 @@
 package bufpool
 
-import "sync"
+import (
+	"sync"
+)
 
 var (
 	pools = []struct {

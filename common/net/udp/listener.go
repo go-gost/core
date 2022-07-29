@@ -2,7 +2,6 @@ package udp
 
 import (
 	"net"
-	"sync"
 	"time"
 
 	"github.com/go-gost/core/common/bufpool"
@@ -22,10 +21,10 @@ type listener struct {
 	conn     net.PacketConn
 	cqueue   chan net.Conn
 	connPool *connPool
-	mux      sync.Mutex
-	closed   chan struct{}
-	errChan  chan error
-	config   *ListenConfig
+	// mux      sync.Mutex
+	closed  chan struct{}
+	errChan chan error
+	config  *ListenConfig
 }
 
 func NewListener(conn net.PacketConn, cfg *ListenConfig) net.Listener {
@@ -109,8 +108,8 @@ func (ln *listener) Close() error {
 }
 
 func (ln *listener) getConn(raddr net.Addr) *conn {
-	ln.mux.Lock()
-	defer ln.mux.Unlock()
+	// ln.mux.Lock()
+	// defer ln.mux.Unlock()
 
 	c, ok := ln.connPool.Get(raddr.String())
 	if ok {

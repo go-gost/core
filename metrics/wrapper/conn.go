@@ -20,6 +20,9 @@ type serverConn struct {
 }
 
 func WrapConn(service string, c net.Conn) net.Conn {
+	if !metrics.IsEnabled() {
+		return c
+	}
 	return &serverConn{
 		service: service,
 		Conn:    c,
@@ -65,6 +68,9 @@ type packetConn struct {
 }
 
 func WrapPacketConn(service string, pc net.PacketConn) net.PacketConn {
+	if !metrics.IsEnabled() {
+		return pc
+	}
 	return &packetConn{
 		PacketConn: pc,
 		service:    service,
