@@ -15,7 +15,10 @@ const (
 )
 
 var (
-	DefaultSelector = NewSelector(RoundRobinStrategy())
+	DefaultSelector = NewSelector(
+		RoundRobinStrategy(),
+		FailFilter(1, DefaultFailTimeout),
+	)
 )
 
 type Selector interface {
