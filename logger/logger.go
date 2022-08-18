@@ -12,6 +12,8 @@ const (
 type LogLevel string
 
 const (
+	// TraceLevel has more verbose message than debug level
+	TraceLevel LogLevel = "trace"
 	// DebugLevel has verbose message
 	DebugLevel LogLevel = "debug"
 	// InfoLevel is default log level
@@ -26,6 +28,8 @@ const (
 
 type Logger interface {
 	WithFields(map[string]any) Logger
+	Trace(args ...any)
+	Tracef(format string, args ...any)
 	Debug(args ...any)
 	Debugf(format string, args ...any)
 	Info(args ...any)
