@@ -39,7 +39,7 @@ func resolve(ctx context.Context, network, addr string, r resolver.Resolver, hos
 			log.Error(err)
 		}
 		if len(ips) == 0 {
-			return "", fmt.Errorf("resolver: domain %s does not exists", host)
+			return "", fmt.Errorf("resolver: domain %s does not exist", host)
 		}
 		return net.JoinHostPort(ips[0].String(), port), nil
 	}
