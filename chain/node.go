@@ -28,6 +28,7 @@ func (node *Node) Copy() *Node {
 type NodeGroup struct {
 	nodes    []*Node
 	selector Selector
+	bypass   bypass.Bypass
 }
 
 func NewNodeGroup(nodes ...*Node) *NodeGroup {
@@ -43,6 +44,25 @@ func (g *NodeGroup) AddNode(node *Node) {
 func (g *NodeGroup) WithSelector(selector Selector) *NodeGroup {
 	g.selector = selector
 	return g
+}
+
+func (g *NodeGroup) WithBypass(bypass bypass.Bypass) *NodeGroup {
+	g.bypass = bypass
+	return g
+}
+
+func (g *NodeGroup) filter(addr string) *NodeGroup {
+	var nodes []*Node
+	for _, node := range g.nodes {
+		if node.Bypass == nil || !node.Bypass.Contains(addr) {
+			nodes = append(nodes, node)
+		}
+	}
+	return &NodeGroup{
+		nodes:    nodes,
+		selector: g.selector,
+		bypass:   g.bypass,
+	}
 }
 
 func (g *NodeGroup) Next() *Node {

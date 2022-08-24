@@ -29,14 +29,15 @@ func (c *Chain) Route(network, address string) (r *Route) {
 		chain: c,
 	}
 	for _, group := range c.groups {
-		node := group.Next()
-		if node == nil {
-			return
-		}
-		if node.Bypass != nil && node.Bypass.Contains(address) {
+		// hop level bypass test
+		if group.bypass != nil && group.bypass.Contains(address) {
 			break
 		}
 
+		node := group.filter(address).Next()
+		if node == nil {
+			return
+		}
 		if node.Transport.Multiplex() {
 			tr := node.Transport.Copy().
 				WithRoute(r)
