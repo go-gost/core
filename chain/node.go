@@ -41,6 +41,10 @@ func (g *NodeGroup) AddNode(node *Node) {
 	g.nodes = append(g.nodes, node)
 }
 
+func (g *NodeGroup) Nodes() []*Node {
+	return g.nodes
+}
+
 func (g *NodeGroup) WithSelector(selector Selector) *NodeGroup {
 	g.selector = selector
 	return g
@@ -51,7 +55,7 @@ func (g *NodeGroup) WithBypass(bypass bypass.Bypass) *NodeGroup {
 	return g
 }
 
-func (g *NodeGroup) filter(addr string) *NodeGroup {
+func (g *NodeGroup) FilterAddr(addr string) *NodeGroup {
 	var nodes []*Node
 	for _, node := range g.nodes {
 		if node.Bypass == nil || !node.Bypass.Contains(addr) {

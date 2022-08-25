@@ -34,7 +34,7 @@ func (c *Chain) Route(network, address string) (r *Route) {
 			break
 		}
 
-		node := group.filter(address).Next()
+		node := group.FilterAddr(address).Next()
 		if node == nil {
 			return
 		}
