@@ -2,8 +2,6 @@ package chain
 
 import (
 	"math/rand"
-	"net"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -146,26 +144,6 @@ func (f *failFilter) Filter(nodes ...*Node) []*Node {
 	for _, node := range nodes {
 		if node.Marker.FailCount() < int64(maxFails) ||
 			time.Since(time.Unix(node.Marker.FailTime(), 0)) >= failTimeout {
-			nl = append(nl, node)
-		}
-	}
-	return nl
-}
-
-type invalidFilter struct{}
-
-// InvalidFilter filters the invalid node.
-// A node is invalid if its port is invalid (negative or zero value).
-func InvalidFilter() Filter {
-	return &invalidFilter{}
-}
-
-// Filter filters invalid nodes.
-func (f *invalidFilter) Filter(nodes ...*Node) []*Node {
-	var nl []*Node
-	for _, node := range nodes {
-		_, sport, _ := net.SplitHostPort(node.Addr)
-		if port, _ := strconv.Atoi(sport); port > 0 {
 			nl = append(nl, node)
 		}
 	}
