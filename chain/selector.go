@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-gost/core/metadata"
+	mdutil "github.com/go-gost/core/metadata/util"
 )
 
 // default options for FailFilter
@@ -131,8 +132,8 @@ type failFilter[T Selectable] struct {
 	failTimeout time.Duration
 }
 
-// FailFilter filters the dead node.
-// A node is marked as dead if its failed count is greater than MaxFails.
+// FailFilter filters the dead objects.
+// An object is marked as dead if its failed count is greater than MaxFails.
 func FailFilter[T Selectable](maxFails int, timeout time.Duration) Filter[T] {
 	return &failFilter[T]{
 		maxFails:    maxFails,
@@ -140,7 +141,7 @@ func FailFilter[T Selectable](maxFails int, timeout time.Duration) Filter[T] {
 	}
 }
 
-// Filter filters dead nodes.
+// Filter filters dead objects.
 func (f *failFilter[T]) Filter(vs ...T) []T {
 	maxFails := f.maxFails
 	failTimeout := f.failTimeout
@@ -161,6 +162,35 @@ func (f *failFilter[T]) Filter(vs ...T) []T {
 		} else {
 			l = append(l, v)
 		}
+	}
+	return l
+}
+
+type backupFilter[T Selectable] struct{}
+
+// BackupFilter filters the backup objects.
+// An object is marked as backup if its metadata has backup flag.
+func BackupFilter[T Selectable]() Filter[T] {
+	return &backupFilter[T]{}
+}
+
+// Filter filters backup objects.
+func (f *backupFilter[T]) Filter(vs ...T) []T {
+	if len(vs) <= 1 {
+		return vs
+	}
+
+	var l, backups []T
+	for _, v := range vs {
+		if mdutil.GetBool(v.Metadata(), "backup") {
+			backups = append(backups, v)
+		} else {
+			l = append(l, v)
+		}
+	}
+
+	if len(l) == 0 {
+		return backups
 	}
 	return l
 }
