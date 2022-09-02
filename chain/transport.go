@@ -14,7 +14,7 @@ type Transport struct {
 	addr      string
 	ifceName  string
 	sockOpts  *SockOpts
-	route     *Route
+	route     Route
 	dialer    dialer.Dialer
 	connector connector.Connector
 }
@@ -53,7 +53,7 @@ func (tr *Transport) Dial(ctx context.Context, addr string) (net.Conn, error) {
 	if tr.sockOpts != nil {
 		netd.Mark = tr.sockOpts.Mark
 	}
-	if tr.route.Len() > 0 {
+	if tr.route != nil && tr.route.Len() > 0 {
 		netd.DialFunc = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return tr.route.Dial(ctx, network, addr)
 		}
@@ -98,7 +98,7 @@ func (tr *Transport) Multiplex() bool {
 	return false
 }
 
-func (tr *Transport) WithRoute(r *Route) *Transport {
+func (tr *Transport) WithRoute(r Route) *Transport {
 	tr.route = r
 	return tr
 }

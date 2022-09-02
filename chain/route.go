@@ -18,17 +18,32 @@ var (
 	ErrEmptyRoute = errors.New("empty route")
 )
 
-type Route struct {
-	chain  *Chain
-	nodes  []*Node
-	logger logger.Logger
+type Route interface {
+	Dial(ctx context.Context, network, address string, opts ...DialOption) (net.Conn, error)
+	Bind(ctx context.Context, network, address string, opts ...BindOption) (net.Listener, error)
+	Len() int
+	Path() []*Node
 }
 
-func (r *Route) addNode(node *Node) {
+type route struct {
+	chain *Chain
+	nodes []*Node
+}
+
+func newRoute() *route {
+	return &route{}
+}
+
+func (r *route) addNode(node *Node) {
 	r.nodes = append(r.nodes, node)
 }
 
-func (r *Route) Dial(ctx context.Context, network, address string, opts ...DialOption) (net.Conn, error) {
+func (r *route) WithChain(chain *Chain) *route {
+	r.chain = chain
+	return r
+}
+
+func (r *route) Dial(ctx context.Context, network, address string, opts ...DialOption) (net.Conn, error) {
 	var options DialOptions
 	for _, opt := range opts {
 		opt(&options)
@@ -43,13 +58,13 @@ func (r *Route) Dial(ctx context.Context, network, address string, opts ...DialO
 			netd.Mark = options.SockOpts.Mark
 		}
 		if r != nil {
-			netd.Logger = r.logger
+			netd.Logger = options.Logger
 		}
 
 		return netd.Dial(ctx, network, address)
 	}
 
-	conn, err := r.connect(ctx)
+	conn, err := r.connect(ctx, options.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -62,17 +77,29 @@ func (r *Route) Dial(ctx context.Context, network, address string, opts ...DialO
 	return cc, nil
 }
 
-func (r *Route) Bind(ctx context.Context, network, address string, opts ...connector.BindOption) (net.Listener, error) {
-	if r.Len() == 0 {
-		return r.bindLocal(ctx, network, address, opts...)
+func (r *route) Bind(ctx context.Context, network, address string, opts ...BindOption) (net.Listener, error) {
+	var options BindOptions
+	for _, opt := range opts {
+		opt(&options)
 	}
 
-	conn, err := r.connect(ctx)
+	if r.Len() == 0 {
+		return r.bindLocal(ctx, network, address, &options)
+	}
+
+	conn, err := r.connect(ctx, options.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	ln, err := r.GetNode(r.Len()-1).transport.Bind(ctx, conn, network, address, opts...)
+	ln, err := r.GetNode(r.Len()-1).transport.Bind(ctx,
+		conn, network, address,
+		connector.BacklogBindOption(options.Backlog),
+		connector.MuxBindOption(options.Mux),
+		connector.UDPConnTTLBindOption(options.UDPConnTTL),
+		connector.UDPDataBufferSizeBindOption(options.UDPDataBufferSize),
+		connector.UDPDataQueueSizeBindOption(options.UDPDataQueueSize),
+	)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -81,7 +108,7 @@ func (r *Route) Bind(ctx context.Context, network, address string, opts ...conne
 	return ln, nil
 }
 
-func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
+func (r *route) connect(ctx context.Context, logger logger.Logger) (conn net.Conn, err error) {
 	if r.Len() == 0 {
 		return nil, ErrEmptyRoute
 	}
@@ -109,7 +136,7 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 		}
 	}()
 
-	addr, err := resolve(ctx, network, node.Addr, node.resolver, node.hostMapper, r.logger)
+	addr, err := resolve(ctx, network, node.Addr, node.resolver, node.hostMapper, logger)
 	marker := node.Marker()
 	if err != nil {
 		if marker != nil {
@@ -149,7 +176,7 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 	preNode := node
 	for _, node := range r.nodes[1:] {
 		marker := node.Marker()
-		addr, err = resolve(ctx, network, node.Addr, node.resolver, node.hostMapper, r.logger)
+		addr, err = resolve(ctx, network, node.Addr, node.resolver, node.hostMapper, logger)
 		if err != nil {
 			cn.Close()
 			if marker != nil {
@@ -185,21 +212,21 @@ func (r *Route) connect(ctx context.Context) (conn net.Conn, err error) {
 	return
 }
 
-func (r *Route) Len() int {
+func (r *route) Len() int {
 	if r == nil {
 		return 0
 	}
 	return len(r.nodes)
 }
 
-func (r *Route) GetNode(index int) *Node {
+func (r *route) GetNode(index int) *Node {
 	if r.Len() == 0 || index < 0 || index >= len(r.nodes) {
 		return nil
 	}
 	return r.nodes[index]
 }
 
-func (r *Route) Path() (path []*Node) {
+func (r *route) Path() (path []*Node) {
 	if r == nil || len(r.nodes) == 0 {
 		return nil
 	}
@@ -213,12 +240,7 @@ func (r *Route) Path() (path []*Node) {
 	return
 }
 
-func (r *Route) bindLocal(ctx context.Context, network, address string, opts ...connector.BindOption) (net.Listener, error) {
-	options := connector.BindOptions{}
-	for _, opt := range opts {
-		opt(&options)
-	}
-
+func (r *route) bindLocal(ctx context.Context, network, address string, opts *BindOptions) (net.Listener, error) {
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 		addr, err := net.ResolveTCPAddr(network, address)
@@ -240,10 +262,10 @@ func (r *Route) bindLocal(ctx context.Context, network, address string, opts ...
 			"address": address,
 		})
 		ln := udp.NewListener(conn, &udp.ListenConfig{
-			Backlog:        options.Backlog,
-			ReadQueueSize:  options.UDPDataQueueSize,
-			ReadBufferSize: options.UDPDataBufferSize,
-			TTL:            options.UDPConnTTL,
+			Backlog:        opts.Backlog,
+			ReadQueueSize:  opts.UDPDataQueueSize,
+			ReadBufferSize: opts.UDPDataBufferSize,
+			TTL:            opts.UDPConnTTL,
 			KeepAlive:      true,
 			Logger:         logger,
 		})
@@ -258,6 +280,7 @@ type DialOptions struct {
 	Timeout   time.Duration
 	Interface string
 	SockOpts  *SockOpts
+	Logger    logger.Logger
 }
 
 type DialOption func(opts *DialOptions)
@@ -277,5 +300,58 @@ func InterfaceDialOption(ifName string) DialOption {
 func SockOptsDialOption(so *SockOpts) DialOption {
 	return func(opts *DialOptions) {
 		opts.SockOpts = so
+	}
+}
+
+func LoggerDialOption(logger logger.Logger) DialOption {
+	return func(opts *DialOptions) {
+		opts.Logger = logger
+	}
+}
+
+type BindOptions struct {
+	Mux               bool
+	Backlog           int
+	UDPDataQueueSize  int
+	UDPDataBufferSize int
+	UDPConnTTL        time.Duration
+	Logger            logger.Logger
+}
+
+type BindOption func(opts *BindOptions)
+
+func MuxBindOption(mux bool) BindOption {
+	return func(opts *BindOptions) {
+		opts.Mux = mux
+	}
+}
+
+func BacklogBindOption(backlog int) BindOption {
+	return func(opts *BindOptions) {
+		opts.Backlog = backlog
+	}
+}
+
+func UDPDataQueueSizeBindOption(size int) BindOption {
+	return func(opts *BindOptions) {
+		opts.UDPDataQueueSize = size
+	}
+}
+
+func UDPDataBufferSizeBindOption(size int) BindOption {
+	return func(opts *BindOptions) {
+		opts.UDPDataBufferSize = size
+	}
+}
+
+func UDPConnTTLBindOption(ttl time.Duration) BindOption {
+	return func(opts *BindOptions) {
+		opts.UDPConnTTL = ttl
+	}
+}
+
+func LoggerBindOption(logger logger.Logger) BindOption {
+	return func(opts *BindOptions) {
+		opts.Logger = logger
 	}
 }

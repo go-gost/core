@@ -2,21 +2,22 @@ package chain
 
 import (
 	"github.com/go-gost/core/metadata"
+	"github.com/go-gost/core/selector"
 )
 
 type Chainer interface {
-	Route(network, address string) *Route
+	Route(network, address string) Route
 }
 
 type SelectableChainer interface {
 	Chainer
-	Selectable
+	selector.Selectable
 }
 
 type Chain struct {
 	name     string
 	groups   []*NodeGroup
-	marker   Marker
+	marker   selector.Marker
 	metadata metadata.Metadata
 }
 
@@ -24,7 +25,7 @@ func NewChain(name string, groups ...*NodeGroup) *Chain {
 	return &Chain{
 		name:   name,
 		groups: groups,
-		marker: NewFailMarker(),
+		marker: selector.NewFailMarker(),
 	}
 }
 
@@ -40,18 +41,16 @@ func (c *Chain) Metadata() metadata.Metadata {
 	return c.metadata
 }
 
-func (c *Chain) Marker() Marker {
+func (c *Chain) Marker() selector.Marker {
 	return c.marker
 }
 
-func (c *Chain) Route(network, address string) (r *Route) {
+func (c *Chain) Route(network, address string) Route {
 	if c == nil || len(c.groups) == 0 {
-		return
+		return nil
 	}
 
-	r = &Route{
-		chain: c,
-	}
+	rt := newRoute().WithChain(c)
 	for _, group := range c.groups {
 		// hop level bypass test
 		if group.bypass != nil && group.bypass.Contains(address) {
@@ -60,27 +59,37 @@ func (c *Chain) Route(network, address string) (r *Route) {
 
 		node := group.FilterAddr(address).Next()
 		if node == nil {
-			return
+			return rt
 		}
 		if node.transport.Multiplex() {
-			tr := node.transport.Copy().
-				WithRoute(r)
+			tr := node.transport.
+				Copy().
+				WithRoute(rt)
 			node = node.Copy()
 			node.transport = tr
-			r = &Route{}
+			rt = newRoute()
 		}
 
-		r.addNode(node)
+		rt.addNode(node)
 	}
-	return r
+	return rt
 }
 
 type ChainGroup struct {
-	Chains   []SelectableChainer
-	Selector Selector[SelectableChainer]
+	chains   []SelectableChainer
+	selector selector.Selector[SelectableChainer]
 }
 
-func (p *ChainGroup) Route(network, address string) *Route {
+func NewChainGroup(chains ...SelectableChainer) *ChainGroup {
+	return &ChainGroup{chains: chains}
+}
+
+func (p *ChainGroup) WithSelector(s selector.Selector[SelectableChainer]) *ChainGroup {
+	p.selector = s
+	return p
+}
+
+func (p *ChainGroup) Route(network, address string) Route {
 	if chain := p.next(); chain != nil {
 		return chain.Route(network, address)
 	}
@@ -88,13 +97,9 @@ func (p *ChainGroup) Route(network, address string) *Route {
 }
 
 func (p *ChainGroup) next() Chainer {
-	if p == nil || len(p.Chains) == 0 {
+	if p == nil || len(p.chains) == 0 {
 		return nil
 	}
 
-	s := p.Selector
-	if s == nil {
-		s = DefaultChainSelector
-	}
-	return s.Select(p.Chains...)
+	return p.selector.Select(p.chains...)
 }

@@ -7,7 +7,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-gost/core/connector"
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/recorder"
@@ -128,7 +127,7 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 	r.logger.Debugf("dial %s/%s", address, network)
 
 	for i := 0; i < count; i++ {
-		var route *Route
+		var route Route
 		if r.chain != nil {
 			route = r.chain.Route(network, address)
 		}
@@ -149,12 +148,12 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 		}
 
 		if route == nil {
-			route = &Route{}
+			route = newRoute()
 		}
-		route.logger = r.logger
 		conn, err = route.Dial(ctx, network, address,
 			InterfaceDialOption(r.ifceName),
 			SockOptsDialOption(r.sockOpts),
+			LoggerDialOption(r.logger),
 		)
 		if err == nil {
 			break
@@ -165,7 +164,7 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 	return
 }
 
-func (r *Router) Bind(ctx context.Context, network, address string, opts ...connector.BindOption) (ln net.Listener, err error) {
+func (r *Router) Bind(ctx context.Context, network, address string, opts ...BindOption) (ln net.Listener, err error) {
 	count := r.retries + 1
 	if count <= 0 {
 		count = 1
@@ -173,7 +172,7 @@ func (r *Router) Bind(ctx context.Context, network, address string, opts ...conn
 	r.logger.Debugf("bind on %s/%s", address, network)
 
 	for i := 0; i < count; i++ {
-		var route *Route
+		var route Route
 		if r.chain != nil {
 			route = r.chain.Route(network, address)
 			if route.Len() == 0 {

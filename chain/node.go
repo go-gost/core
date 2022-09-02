@@ -5,6 +5,7 @@ import (
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/resolver"
+	"github.com/go-gost/core/selector"
 )
 
 type Node struct {
@@ -14,7 +15,7 @@ type Node struct {
 	bypass     bypass.Bypass
 	resolver   resolver.Resolver
 	hostMapper hosts.HostMapper
-	marker     Marker
+	marker     selector.Marker
 	metadata   metadata.Metadata
 }
 
@@ -22,7 +23,7 @@ func NewNode(name, addr string) *Node {
 	return &Node{
 		Name:   name,
 		Addr:   addr,
-		marker: NewFailMarker(),
+		marker: selector.NewFailMarker(),
 	}
 }
 
@@ -51,7 +52,7 @@ func (node *Node) WithMetadata(md metadata.Metadata) *Node {
 	return node
 }
 
-func (node *Node) Marker() Marker {
+func (node *Node) Marker() selector.Marker {
 	return node.marker
 }
 
@@ -67,7 +68,7 @@ func (node *Node) Copy() *Node {
 
 type NodeGroup struct {
 	nodes    []*Node
-	selector Selector[*Node]
+	selector selector.Selector[*Node]
 	bypass   bypass.Bypass
 }
 
@@ -85,7 +86,7 @@ func (g *NodeGroup) Nodes() []*Node {
 	return g.nodes
 }
 
-func (g *NodeGroup) WithSelector(selector Selector[*Node]) *NodeGroup {
+func (g *NodeGroup) WithSelector(selector selector.Selector[*Node]) *NodeGroup {
 	g.selector = selector
 	return g
 }
@@ -114,10 +115,5 @@ func (g *NodeGroup) Next() *Node {
 		return nil
 	}
 
-	s := g.selector
-	if s == nil {
-		s = DefaultNodeSelector
-	}
-
-	return s.Select(g.nodes...)
+	return g.selector.Select(g.nodes...)
 }
