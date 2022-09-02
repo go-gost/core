@@ -1,6 +1,7 @@
 package selector
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
@@ -13,15 +14,15 @@ type Selectable interface {
 }
 
 type Selector[T any] interface {
-	Select(...T) T
+	Select(context.Context, ...T) T
 }
 
 type Strategy[T Selectable] interface {
-	Apply(...T) T
+	Apply(context.Context, ...T) T
 }
 
 type Filter[T Selectable] interface {
-	Filter(...T) []T
+	Filter(context.Context, ...T) []T
 }
 
 type Marker interface {

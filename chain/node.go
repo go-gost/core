@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	"github.com/go-gost/core/bypass"
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/metadata"
@@ -110,10 +112,10 @@ func (g *NodeGroup) FilterAddr(addr string) *NodeGroup {
 	}
 }
 
-func (g *NodeGroup) Next() *Node {
+func (g *NodeGroup) Next(ctx context.Context) *Node {
 	if g == nil || len(g.nodes) == 0 {
 		return nil
 	}
 
-	return g.selector.Select(g.nodes...)
+	return g.selector.Select(ctx, g.nodes...)
 }

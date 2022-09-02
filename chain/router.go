@@ -129,12 +129,16 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 	for i := 0; i < count; i++ {
 		var route Route
 		if r.chain != nil {
-			route = r.chain.Route(network, address)
+			route = r.chain.Route(ctx, network, address)
 		}
 
 		if r.logger.IsLevelEnabled(logger.DebugLevel) {
 			buf := bytes.Buffer{}
-			for _, node := range route.Path() {
+			var path []*Node
+			if route != nil {
+				path = route.Path()
+			}
+			for _, node := range path {
 				fmt.Fprintf(&buf, "%s@%s > ", node.Name, node.Addr)
 			}
 			fmt.Fprintf(&buf, "%s", address)
@@ -174,7 +178,7 @@ func (r *Router) Bind(ctx context.Context, network, address string, opts ...Bind
 	for i := 0; i < count; i++ {
 		var route Route
 		if r.chain != nil {
-			route = r.chain.Route(network, address)
+			route = r.chain.Route(ctx, network, address)
 			if route.Len() == 0 {
 				err = ErrEmptyRoute
 				return

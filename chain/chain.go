@@ -1,12 +1,14 @@
 package chain
 
 import (
+	"context"
+
 	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/selector"
 )
 
 type Chainer interface {
-	Route(network, address string) Route
+	Route(ctx context.Context, network, address string) Route
 }
 
 type SelectableChainer interface {
@@ -45,7 +47,7 @@ func (c *Chain) Marker() selector.Marker {
 	return c.marker
 }
 
-func (c *Chain) Route(network, address string) Route {
+func (c *Chain) Route(ctx context.Context, network, address string) Route {
 	if c == nil || len(c.groups) == 0 {
 		return nil
 	}
@@ -57,7 +59,7 @@ func (c *Chain) Route(network, address string) Route {
 			break
 		}
 
-		node := group.FilterAddr(address).Next()
+		node := group.FilterAddr(address).Next(ctx)
 		if node == nil {
 			return rt
 		}
@@ -89,17 +91,17 @@ func (p *ChainGroup) WithSelector(s selector.Selector[SelectableChainer]) *Chain
 	return p
 }
 
-func (p *ChainGroup) Route(network, address string) Route {
-	if chain := p.next(); chain != nil {
-		return chain.Route(network, address)
+func (p *ChainGroup) Route(ctx context.Context, network, address string) Route {
+	if chain := p.next(ctx); chain != nil {
+		return chain.Route(ctx, network, address)
 	}
 	return nil
 }
 
-func (p *ChainGroup) next() Chainer {
+func (p *ChainGroup) next(ctx context.Context) Chainer {
 	if p == nil || len(p.chains) == 0 {
 		return nil
 	}
 
-	return p.selector.Select(p.chains...)
+	return p.selector.Select(ctx, p.chains...)
 }
