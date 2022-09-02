@@ -5,17 +5,17 @@ type Authenticator interface {
 	Authenticate(user, password string) bool
 }
 
-type authenticatorList struct {
+type authenticatorGroup struct {
 	authers []Authenticator
 }
 
-func AuthenticatorList(authers ...Authenticator) Authenticator {
-	return &authenticatorList{
+func AuthenticatorGroup(authers ...Authenticator) Authenticator {
+	return &authenticatorGroup{
 		authers: authers,
 	}
 }
 
-func (p *authenticatorList) Authenticate(user, password string) bool {
+func (p *authenticatorGroup) Authenticate(user, password string) bool {
 	if len(p.authers) == 0 {
 		return true
 	}

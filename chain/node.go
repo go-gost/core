@@ -1,22 +1,62 @@
 package chain
 
 import (
-	"sync/atomic"
-	"time"
-
 	"github.com/go-gost/core/bypass"
 	"github.com/go-gost/core/hosts"
+	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/resolver"
 )
 
 type Node struct {
-	Name      string
-	Addr      string
-	Transport *Transport
-	Bypass    bypass.Bypass
-	Resolver  resolver.Resolver
-	Hosts     hosts.HostMapper
-	Marker    *FailMarker
+	Name       string
+	Addr       string
+	transport  *Transport
+	bypass     bypass.Bypass
+	resolver   resolver.Resolver
+	hostMapper hosts.HostMapper
+	marker     Marker
+	metadata   metadata.Metadata
+}
+
+func NewNode(name, addr string) *Node {
+	return &Node{
+		Name:   name,
+		Addr:   addr,
+		marker: NewFailMarker(),
+	}
+}
+
+func (node *Node) WithTransport(tr *Transport) *Node {
+	node.transport = tr
+	return node
+}
+
+func (node *Node) WithBypass(bypass bypass.Bypass) *Node {
+	node.bypass = bypass
+	return node
+}
+
+func (node *Node) WithResolver(reslv resolver.Resolver) *Node {
+	node.resolver = reslv
+	return node
+}
+
+func (node *Node) WithHostMapper(m hosts.HostMapper) *Node {
+	node.hostMapper = m
+	return node
+}
+
+func (node *Node) WithMetadata(md metadata.Metadata) *Node {
+	node.metadata = md
+	return node
+}
+
+func (node *Node) Marker() Marker {
+	return node.marker
+}
+
+func (node *Node) Metadata() metadata.Metadata {
+	return node.metadata
 }
 
 func (node *Node) Copy() *Node {
@@ -27,7 +67,7 @@ func (node *Node) Copy() *Node {
 
 type NodeGroup struct {
 	nodes    []*Node
-	selector Selector
+	selector Selector[*Node]
 	bypass   bypass.Bypass
 }
 
@@ -45,7 +85,7 @@ func (g *NodeGroup) Nodes() []*Node {
 	return g.nodes
 }
 
-func (g *NodeGroup) WithSelector(selector Selector) *NodeGroup {
+func (g *NodeGroup) WithSelector(selector Selector[*Node]) *NodeGroup {
 	g.selector = selector
 	return g
 }
@@ -58,7 +98,7 @@ func (g *NodeGroup) WithBypass(bypass bypass.Bypass) *NodeGroup {
 func (g *NodeGroup) FilterAddr(addr string) *NodeGroup {
 	var nodes []*Node
 	for _, node := range g.nodes {
-		if node.Bypass == nil || !node.Bypass.Contains(addr) {
+		if node.bypass == nil || !node.bypass.Contains(addr) {
 			nodes = append(nodes, node)
 		}
 	}
@@ -76,46 +116,8 @@ func (g *NodeGroup) Next() *Node {
 
 	s := g.selector
 	if s == nil {
-		s = DefaultSelector
+		s = DefaultNodeSelector
 	}
 
 	return s.Select(g.nodes...)
-}
-
-type FailMarker struct {
-	failTime  int64
-	failCount int64
-}
-
-func (m *FailMarker) FailTime() int64 {
-	if m == nil {
-		return 0
-	}
-
-	return atomic.LoadInt64(&m.failTime)
-}
-
-func (m *FailMarker) FailCount() int64 {
-	if m == nil {
-		return 0
-	}
-
-	return atomic.LoadInt64(&m.failCount)
-}
-
-func (m *FailMarker) Mark() {
-	if m == nil {
-		return
-	}
-
-	atomic.AddInt64(&m.failCount, 1)
-	atomic.StoreInt64(&m.failTime, time.Now().Unix())
-}
-
-func (m *FailMarker) Reset() {
-	if m == nil {
-		return
-	}
-
-	atomic.StoreInt64(&m.failCount, 0)
 }

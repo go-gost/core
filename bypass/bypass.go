@@ -6,17 +6,17 @@ type Bypass interface {
 	Contains(addr string) bool
 }
 
-type bypassList struct {
+type bypassGroup struct {
 	bypasses []Bypass
 }
 
-func BypassList(bypasses ...Bypass) Bypass {
-	return &bypassList{
+func BypassGroup(bypasses ...Bypass) Bypass {
+	return &bypassGroup{
 		bypasses: bypasses,
 	}
 }
 
-func (p *bypassList) Contains(addr string) bool {
+func (p *bypassGroup) Contains(addr string) bool {
 	for _, bypass := range p.bypasses {
 		if bypass != nil && bypass.Contains(addr) {
 			return true
