@@ -11,11 +11,6 @@ type Chainer interface {
 	Route(ctx context.Context, network, address string) Route
 }
 
-type SelectableChainer interface {
-	Chainer
-	selector.Selectable
-}
-
 type Chain struct {
 	name     string
 	groups   []*NodeGroup
@@ -39,10 +34,12 @@ func (c *Chain) WithMetadata(md metadata.Metadata) {
 	c.metadata = md
 }
 
+// Metadata implements metadata.Metadatable interface.
 func (c *Chain) Metadata() metadata.Metadata {
 	return c.metadata
 }
 
+// Marker implements selector.Markable interface.
 func (c *Chain) Marker() selector.Marker {
 	return c.marker
 }
@@ -78,15 +75,15 @@ func (c *Chain) Route(ctx context.Context, network, address string) Route {
 }
 
 type ChainGroup struct {
-	chains   []SelectableChainer
-	selector selector.Selector[SelectableChainer]
+	chains   []Chainer
+	selector selector.Selector[Chainer]
 }
 
-func NewChainGroup(chains ...SelectableChainer) *ChainGroup {
+func NewChainGroup(chains ...Chainer) *ChainGroup {
 	return &ChainGroup{chains: chains}
 }
 
-func (p *ChainGroup) WithSelector(s selector.Selector[SelectableChainer]) *ChainGroup {
+func (p *ChainGroup) WithSelector(s selector.Selector[Chainer]) *ChainGroup {
 	p.selector = s
 	return p
 }

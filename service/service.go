@@ -85,6 +85,7 @@ func (s *service) Serve() error {
 	for {
 		conn, e := s.listener.Accept()
 		if e != nil {
+			// TODO: remove Temporary checking
 			if ne, ok := e.(net.Error); ok && ne.Temporary() {
 				if tempDelay == 0 {
 					tempDelay = 1 * time.Second

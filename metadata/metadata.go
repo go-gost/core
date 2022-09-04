@@ -1,7 +1,7 @@
 package metadata
 
 type Metadatable interface {
-	GetMetadata() Metadata
+	Metadata() Metadata
 }
 
 type Metadata interface {

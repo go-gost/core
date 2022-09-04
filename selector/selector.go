@@ -4,25 +4,22 @@ import (
 	"context"
 	"sync/atomic"
 	"time"
-
-	"github.com/go-gost/core/metadata"
 )
-
-type Selectable interface {
-	Marker() Marker
-	Metadata() metadata.Metadata
-}
 
 type Selector[T any] interface {
 	Select(context.Context, ...T) T
 }
 
-type Strategy[T Selectable] interface {
+type Strategy[T any] interface {
 	Apply(context.Context, ...T) T
 }
 
-type Filter[T Selectable] interface {
+type Filter[T any] interface {
 	Filter(context.Context, ...T) []T
+}
+
+type Markable interface {
+	Marker() Marker
 }
 
 type Marker interface {

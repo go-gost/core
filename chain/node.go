@@ -54,10 +54,12 @@ func (node *Node) WithMetadata(md metadata.Metadata) *Node {
 	return node
 }
 
+// Marker implements selector.Markable interface.
 func (node *Node) Marker() selector.Marker {
 	return node.marker
 }
 
+// Metadata implements metadadta.Metadatable interface.
 func (node *Node) Metadata() metadata.Metadata {
 	return node.metadata
 }
