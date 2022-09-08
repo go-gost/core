@@ -17,6 +17,7 @@ type Transport struct {
 	route     Route
 	dialer    dialer.Dialer
 	connector connector.Connector
+	timeout   time.Duration
 }
 
 func (tr *Transport) Copy() *Transport {
@@ -45,10 +46,15 @@ func (tr *Transport) WithConnector(connector connector.Connector) *Transport {
 	return tr
 }
 
+func (tr *Transport) WithTimeout(d time.Duration) *Transport {
+	tr.timeout = d
+	return tr
+}
+
 func (tr *Transport) Dial(ctx context.Context, addr string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
 		Interface: tr.ifceName,
-		Timeout:   15 * time.Second,
+		Timeout:   tr.timeout,
 	}
 	if tr.sockOpts != nil {
 		netd.Mark = tr.sockOpts.Mark
@@ -81,7 +87,16 @@ func (tr *Transport) Handshake(ctx context.Context, conn net.Conn) (net.Conn, er
 }
 
 func (tr *Transport) Connect(ctx context.Context, conn net.Conn, network, address string) (net.Conn, error) {
-	return tr.connector.Connect(ctx, conn, network, address)
+	netd := &net_dialer.NetDialer{
+		Interface: tr.ifceName,
+		Timeout:   tr.timeout,
+	}
+	if tr.sockOpts != nil {
+		netd.Mark = tr.sockOpts.Mark
+	}
+	return tr.connector.Connect(ctx, conn, network, address,
+		connector.NetDialerConnectOption(netd),
+	)
 }
 
 func (tr *Transport) Bind(ctx context.Context, conn net.Conn, network, address string, opts ...connector.BindOption) (net.Listener, error) {

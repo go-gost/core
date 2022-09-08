@@ -71,7 +71,9 @@ func (r *route) Dial(ctx context.Context, network, address string, opts ...DialO
 
 	cc, err := r.GetNode(r.Len()-1).transport.Connect(ctx, conn, network, address)
 	if err != nil {
-		conn.Close()
+		if conn != nil {
+			conn.Close()
+		}
 		return nil, err
 	}
 	return cc, nil

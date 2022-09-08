@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-gost/core/common/net/dialer"
 	"github.com/go-gost/core/logger"
 )
 
@@ -35,9 +36,16 @@ func LoggerOption(logger logger.Logger) Option {
 }
 
 type ConnectOptions struct {
+	NetDialer *dialer.NetDialer
 }
 
 type ConnectOption func(opts *ConnectOptions)
+
+func NetDialerConnectOption(netd *dialer.NetDialer) ConnectOption {
+	return func(opts *ConnectOptions) {
+		opts.NetDialer = netd
+	}
+}
 
 type BindOptions struct {
 	Mux               bool
