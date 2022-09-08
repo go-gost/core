@@ -12,15 +12,16 @@ import (
 )
 
 type Options struct {
-	Addr        string
-	Auther      auth.Authenticator
-	Auth        *url.Userinfo
-	TLSConfig   *tls.Config
-	Admission   admission.Admission
-	RateLimiter limiter.RateLimiter
-	Chain       chain.Chainer
-	Logger      logger.Logger
-	Service     string
+	Addr          string
+	Auther        auth.Authenticator
+	Auth          *url.Userinfo
+	TLSConfig     *tls.Config
+	Admission     admission.Admission
+	RateLimiter   limiter.RateLimiter
+	Chain         chain.Chainer
+	Logger        logger.Logger
+	Service       string
+	ProxyProtocol int
 }
 
 type Option func(opts *Options)
@@ -76,5 +77,11 @@ func LoggerOption(logger logger.Logger) Option {
 func ServiceOption(service string) Option {
 	return func(opts *Options) {
 		opts.Service = service
+	}
+}
+
+func ProxyProtocolOption(ppv int) Option {
+	return func(opts *Options) {
+		opts.ProxyProtocol = ppv
 	}
 }

@@ -9,9 +9,10 @@ import (
 )
 
 type Options struct {
-	Auth      *url.Userinfo
-	TLSConfig *tls.Config
-	Logger    logger.Logger
+	Auth          *url.Userinfo
+	TLSConfig     *tls.Config
+	Logger        logger.Logger
+	ProxyProtocol int
 }
 
 type Option func(opts *Options)
@@ -31,6 +32,12 @@ func TLSConfigOption(tlsConfig *tls.Config) Option {
 func LoggerOption(logger logger.Logger) Option {
 	return func(opts *Options) {
 		opts.Logger = logger
+	}
+}
+
+func ProxyProtocolOption(ppv int) Option {
+	return func(opts *Options) {
+		opts.ProxyProtocol = ppv
 	}
 }
 
