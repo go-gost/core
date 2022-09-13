@@ -1,4 +1,4 @@
-package limiter
+package traffic
 
 import "context"
 
@@ -9,7 +9,7 @@ type Limiter interface {
 	Limit() int
 }
 
-type RateLimiter interface {
+type TrafficLimiter interface {
 	In(key string) Limiter
 	Out(key string) Limiter
 }

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DefaultTimeout = 15 * time.Second
+	DefaultTimeout = 10 * time.Second
 )
 
 var (
