@@ -49,6 +49,8 @@ func GetFloat(md metadata.Metadata, key string) (v float64) {
 	}
 
 	switch vv := md.Get(key).(type) {
+	case float64:
+		return vv
 	case int:
 		return float64(vv)
 	case string:

@@ -7,17 +7,19 @@ import (
 	"github.com/go-gost/core/auth"
 	"github.com/go-gost/core/bypass"
 	"github.com/go-gost/core/chain"
+	"github.com/go-gost/core/limiter/rate"
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/metadata"
 )
 
 type Options struct {
-	Bypass    bypass.Bypass
-	Router    *chain.Router
-	Auth      *url.Userinfo
-	Auther    auth.Authenticator
-	TLSConfig *tls.Config
-	Logger    logger.Logger
+	Bypass      bypass.Bypass
+	Router      *chain.Router
+	Auth        *url.Userinfo
+	Auther      auth.Authenticator
+	RateLimiter rate.RateLimiter
+	TLSConfig   *tls.Config
+	Logger      logger.Logger
 }
 
 type Option func(opts *Options)
@@ -43,6 +45,12 @@ func AuthOption(auth *url.Userinfo) Option {
 func AutherOption(auther auth.Authenticator) Option {
 	return func(opts *Options) {
 		opts.Auther = auther
+	}
+}
+
+func RateLimiterOption(limiter rate.RateLimiter) Option {
+	return func(opts *Options) {
+		opts.RateLimiter = limiter
 	}
 }
 
