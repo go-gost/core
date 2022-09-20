@@ -10,7 +10,7 @@ import (
 	"github.com/go-gost/core/resolver"
 )
 
-func resolve(ctx context.Context, network, addr string, r resolver.Resolver, hosts hosts.HostMapper, log logger.Logger) (string, error) {
+func Resolve(ctx context.Context, network, addr string, r resolver.Resolver, hosts hosts.HostMapper, log logger.Logger) (string, error) {
 	if addr == "" {
 		return addr, nil
 	}

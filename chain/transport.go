@@ -10,62 +10,81 @@ import (
 	"github.com/go-gost/core/dialer"
 )
 
+type TransportOptions struct {
+	Addr     string
+	IfceName string
+	SockOpts *SockOpts
+	Route    Route
+	Timeout  time.Duration
+}
+
+type TransportOption func(*TransportOptions)
+
+func AddrTransportOption(addr string) TransportOption {
+	return func(o *TransportOptions) {
+		o.Addr = addr
+	}
+}
+
+func InterfaceTransportOption(ifceName string) TransportOption {
+	return func(o *TransportOptions) {
+		o.IfceName = ifceName
+	}
+}
+
+func SockOptsTransportOption(so *SockOpts) TransportOption {
+	return func(o *TransportOptions) {
+		o.SockOpts = so
+	}
+}
+
+func RouteTransportOption(route Route) TransportOption {
+	return func(o *TransportOptions) {
+		o.Route = route
+	}
+}
+
+func TimeoutTransportOption(timeout time.Duration) TransportOption {
+	return func(o *TransportOptions) {
+		o.Timeout = timeout
+	}
+}
+
 type Transport struct {
-	addr      string
-	ifceName  string
-	sockOpts  *SockOpts
-	route     Route
 	dialer    dialer.Dialer
 	connector connector.Connector
-	timeout   time.Duration
+	options   TransportOptions
 }
 
-func (tr *Transport) Copy() *Transport {
-	tr2 := &Transport{}
-	*tr2 = *tr
-	return tr
-}
+func NewTransport(d dialer.Dialer, c connector.Connector, opts ...TransportOption) *Transport {
+	tr := &Transport{
+		dialer:    d,
+		connector: c,
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&tr.options)
+		}
+	}
 
-func (tr *Transport) WithInterface(ifceName string) *Transport {
-	tr.ifceName = ifceName
-	return tr
-}
-
-func (tr *Transport) WithSockOpts(so *SockOpts) *Transport {
-	tr.sockOpts = so
-	return tr
-}
-
-func (tr *Transport) WithDialer(dialer dialer.Dialer) *Transport {
-	tr.dialer = dialer
-	return tr
-}
-
-func (tr *Transport) WithConnector(connector connector.Connector) *Transport {
-	tr.connector = connector
-	return tr
-}
-
-func (tr *Transport) WithTimeout(d time.Duration) *Transport {
-	tr.timeout = d
 	return tr
 }
 
 func (tr *Transport) Dial(ctx context.Context, addr string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
-		Interface: tr.ifceName,
-		Timeout:   tr.timeout,
+		Interface: tr.options.IfceName,
+		Timeout:   tr.options.Timeout,
 	}
-	if tr.sockOpts != nil {
-		netd.Mark = tr.sockOpts.Mark
+	if tr.options.SockOpts != nil {
+		netd.Mark = tr.options.SockOpts.Mark
 	}
-	if tr.route != nil && tr.route.Len() > 0 {
+	if tr.options.Route != nil && len(tr.options.Route.Nodes()) > 0 {
 		netd.DialFunc = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return tr.route.Dial(ctx, network, addr)
+			return tr.options.Route.Dial(ctx, network, addr)
 		}
 	}
 	opts := []dialer.DialOption{
-		dialer.HostDialOption(tr.addr),
+		dialer.HostDialOption(tr.options.Addr),
 		dialer.NetDialerDialOption(netd),
 	}
 	return tr.dialer.Dial(ctx, addr, opts...)
@@ -75,7 +94,7 @@ func (tr *Transport) Handshake(ctx context.Context, conn net.Conn) (net.Conn, er
 	var err error
 	if hs, ok := tr.dialer.(dialer.Handshaker); ok {
 		conn, err = hs.Handshake(ctx, conn,
-			dialer.AddrHandshakeOption(tr.addr))
+			dialer.AddrHandshakeOption(tr.options.Addr))
 		if err != nil {
 			return nil, err
 		}
@@ -88,11 +107,11 @@ func (tr *Transport) Handshake(ctx context.Context, conn net.Conn) (net.Conn, er
 
 func (tr *Transport) Connect(ctx context.Context, conn net.Conn, network, address string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
-		Interface: tr.ifceName,
-		Timeout:   tr.timeout,
+		Interface: tr.options.IfceName,
+		Timeout:   tr.options.Timeout,
 	}
-	if tr.sockOpts != nil {
-		netd.Mark = tr.sockOpts.Mark
+	if tr.options.SockOpts != nil {
+		netd.Mark = tr.options.SockOpts.Mark
 	}
 	return tr.connector.Connect(ctx, conn, network, address,
 		connector.NetDialerConnectOption(netd),
@@ -113,12 +132,15 @@ func (tr *Transport) Multiplex() bool {
 	return false
 }
 
-func (tr *Transport) WithRoute(r Route) *Transport {
-	tr.route = r
-	return tr
+func (tr *Transport) Options() *TransportOptions {
+	if tr != nil {
+		return &tr.options
+	}
+	return nil
 }
 
-func (tr *Transport) WithAddr(addr string) *Transport {
-	tr.addr = addr
+func (tr *Transport) Copy() *Transport {
+	tr2 := &Transport{}
+	*tr2 = *tr
 	return tr
 }

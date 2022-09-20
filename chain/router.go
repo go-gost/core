@@ -17,68 +17,96 @@ type SockOpts struct {
 	Mark int
 }
 
-type Router struct {
-	ifceName  string
-	sockOpts  *SockOpts
-	timeout   time.Duration
-	retries   int
-	chain     Chainer
-	resolver  resolver.Resolver
-	hosts     hosts.HostMapper
-	recorders []recorder.RecorderObject
-	logger    logger.Logger
+type RouterOptions struct {
+	IfceName   string
+	SockOpts   *SockOpts
+	Timeout    time.Duration
+	Retries    int
+	Chain      Chainer
+	Resolver   resolver.Resolver
+	HostMapper hosts.HostMapper
+	Recorders  []recorder.RecorderObject
+	Logger     logger.Logger
 }
 
-func (r *Router) WithTimeout(timeout time.Duration) *Router {
-	r.timeout = timeout
-	return r
-}
+type RouterOption func(*RouterOptions)
 
-func (r *Router) WithRetries(retries int) *Router {
-	r.retries = retries
-	return r
-}
-
-func (r *Router) WithInterface(ifceName string) *Router {
-	r.ifceName = ifceName
-	return r
-}
-
-func (r *Router) WithSockOpts(so *SockOpts) *Router {
-	r.sockOpts = so
-	return r
-}
-
-func (r *Router) WithChain(chain Chainer) *Router {
-	r.chain = chain
-	return r
-}
-
-func (r *Router) WithResolver(resolver resolver.Resolver) *Router {
-	r.resolver = resolver
-	return r
-}
-
-func (r *Router) WithHosts(hosts hosts.HostMapper) *Router {
-	r.hosts = hosts
-	return r
-}
-
-func (r *Router) Hosts() hosts.HostMapper {
-	if r != nil {
-		return r.hosts
+func InterfaceRouterOption(ifceName string) RouterOption {
+	return func(o *RouterOptions) {
+		o.IfceName = ifceName
 	}
-	return nil
 }
 
-func (r *Router) WithRecorder(recorders ...recorder.RecorderObject) *Router {
-	r.recorders = recorders
+func SockOptsRouterOption(so *SockOpts) RouterOption {
+	return func(o *RouterOptions) {
+		o.SockOpts = so
+	}
+}
+
+func TimeoutRouterOption(timeout time.Duration) RouterOption {
+	return func(o *RouterOptions) {
+		o.Timeout = timeout
+	}
+}
+
+func RetriesRouterOption(retries int) RouterOption {
+	return func(o *RouterOptions) {
+		o.Retries = retries
+	}
+}
+
+func ChainRouterOption(chain Chainer) RouterOption {
+	return func(o *RouterOptions) {
+		o.Chain = chain
+	}
+}
+
+func ResolverRouterOption(resolver resolver.Resolver) RouterOption {
+	return func(o *RouterOptions) {
+		o.Resolver = resolver
+	}
+}
+
+func HostMapperRouterOption(m hosts.HostMapper) RouterOption {
+	return func(o *RouterOptions) {
+		o.HostMapper = m
+	}
+}
+
+func RecordersRouterOption(recorders ...recorder.RecorderObject) RouterOption {
+	return func(o *RouterOptions) {
+		o.Recorders = recorders
+	}
+}
+
+func LoggerRouterOption(logger logger.Logger) RouterOption {
+	return func(o *RouterOptions) {
+		o.Logger = logger
+	}
+}
+
+type Router struct {
+	options RouterOptions
+}
+
+func NewRouter(opts ...RouterOption) *Router {
+	r := &Router{}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&r.options)
+		}
+	}
+	if r.options.Logger == nil {
+		r.options.Logger = logger.Default().WithFields(map[string]any{"kind": "router"})
+	}
 	return r
 }
 
-func (r *Router) WithLogger(logger logger.Logger) *Router {
-	r.logger = logger
-	return r
+func (r *Router) Options() *RouterOptions {
+	if r == nil {
+		return nil
+	}
+	return &r.options
 }
 
 func (r *Router) Dial(ctx context.Context, network, address string) (conn net.Conn, err error) {
@@ -107,11 +135,11 @@ func (r *Router) record(ctx context.Context, name string, data []byte) error {
 		return nil
 	}
 
-	for _, rec := range r.recorders {
+	for _, rec := range r.options.Recorders {
 		if rec.Record == name {
 			err := rec.Recorder.Record(ctx, data)
 			if err != nil {
-				r.logger.Errorf("record %s: %v", name, err)
+				r.options.Logger.Errorf("record %s: %v", name, err)
 			}
 			return err
 		}
@@ -120,87 +148,96 @@ func (r *Router) record(ctx context.Context, name string, data []byte) error {
 }
 
 func (r *Router) dial(ctx context.Context, network, address string) (conn net.Conn, err error) {
-	count := r.retries + 1
+	count := r.options.Retries + 1
 	if count <= 0 {
 		count = 1
 	}
-	r.logger.Debugf("dial %s/%s", address, network)
+	r.options.Logger.Debugf("dial %s/%s", address, network)
 
 	for i := 0; i < count; i++ {
 		var route Route
-		if r.chain != nil {
-			route = r.chain.Route(ctx, network, address)
+		if r.options.Chain != nil {
+			route = r.options.Chain.Route(ctx, network, address)
 		}
 
-		if r.logger.IsLevelEnabled(logger.DebugLevel) {
+		if r.options.Logger.IsLevelEnabled(logger.DebugLevel) {
 			buf := bytes.Buffer{}
-			var path []*Node
-			if route != nil {
-				path = route.Path()
-			}
-			for _, node := range path {
+			for _, node := range routePath(route) {
 				fmt.Fprintf(&buf, "%s@%s > ", node.Name, node.Addr)
 			}
 			fmt.Fprintf(&buf, "%s", address)
-			r.logger.Debugf("route(retry=%d) %s", i, buf.String())
+			r.options.Logger.Debugf("route(retry=%d) %s", i, buf.String())
 		}
 
-		address, err = resolve(ctx, "ip", address, r.resolver, r.hosts, r.logger)
+		address, err = Resolve(ctx, "ip", address, r.options.Resolver, r.options.HostMapper, r.options.Logger)
 		if err != nil {
-			r.logger.Error(err)
+			r.options.Logger.Error(err)
 			break
 		}
 
 		if route == nil {
-			route = newRoute()
+			route = DefaultRoute
 		}
 		conn, err = route.Dial(ctx, network, address,
-			InterfaceDialOption(r.ifceName),
-			SockOptsDialOption(r.sockOpts),
-			LoggerDialOption(r.logger),
+			InterfaceDialOption(r.options.IfceName),
+			SockOptsDialOption(r.options.SockOpts),
+			LoggerDialOption(r.options.Logger),
 		)
 		if err == nil {
 			break
 		}
-		r.logger.Errorf("route(retry=%d) %s", i, err)
+		r.options.Logger.Errorf("route(retry=%d) %s", i, err)
 	}
 
 	return
 }
 
 func (r *Router) Bind(ctx context.Context, network, address string, opts ...BindOption) (ln net.Listener, err error) {
-	count := r.retries + 1
+	count := r.options.Retries + 1
 	if count <= 0 {
 		count = 1
 	}
-	r.logger.Debugf("bind on %s/%s", address, network)
+	r.options.Logger.Debugf("bind on %s/%s", address, network)
 
 	for i := 0; i < count; i++ {
 		var route Route
-		if r.chain != nil {
-			route = r.chain.Route(ctx, network, address)
-			if route.Len() == 0 {
+		if r.options.Chain != nil {
+			route = r.options.Chain.Route(ctx, network, address)
+			if len(route.Nodes()) == 0 {
 				err = ErrEmptyRoute
 				return
 			}
 		}
 
-		if r.logger.IsLevelEnabled(logger.DebugLevel) {
+		if r.options.Logger.IsLevelEnabled(logger.DebugLevel) {
 			buf := bytes.Buffer{}
-			for _, node := range route.Path() {
+			for _, node := range routePath(route) {
 				fmt.Fprintf(&buf, "%s@%s > ", node.Name, node.Addr)
 			}
 			fmt.Fprintf(&buf, "%s", address)
-			r.logger.Debugf("route(retry=%d) %s", i, buf.String())
+			r.options.Logger.Debugf("route(retry=%d) %s", i, buf.String())
 		}
 
 		ln, err = route.Bind(ctx, network, address, opts...)
 		if err == nil {
 			break
 		}
-		r.logger.Errorf("route(retry=%d) %s", i, err)
+		r.options.Logger.Errorf("route(retry=%d) %s", i, err)
 	}
 
+	return
+}
+
+func routePath(route Route) (path []*Node) {
+	if route == nil {
+		return
+	}
+	for _, node := range route.Nodes() {
+		if tr := node.Options().Transport; tr != nil {
+			path = append(path, routePath(tr.Options().Route)...)
+		}
+		path = append(path, node)
+	}
 	return
 }
 
