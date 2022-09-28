@@ -26,6 +26,7 @@ type Route interface {
 	Nodes() []*Node
 }
 
+// route is a Route without nodes.
 type route struct{}
 
 func (*route) Dial(ctx context.Context, network, address string, opts ...DialOption) (net.Conn, error) {

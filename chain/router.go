@@ -18,10 +18,10 @@ type SockOpts struct {
 }
 
 type RouterOptions struct {
+	Retries    int
+	Timeout    time.Duration
 	IfceName   string
 	SockOpts   *SockOpts
-	Timeout    time.Duration
-	Retries    int
 	Chain      Chainer
 	Resolver   resolver.Resolver
 	HostMapper hosts.HostMapper
