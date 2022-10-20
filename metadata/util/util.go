@@ -79,9 +79,29 @@ func GetDuration(md metadata.Metadata, key string) (v time.Duration) {
 }
 
 func GetString(md metadata.Metadata, key string) (v string) {
-	if md != nil {
-		v, _ = md.Get(key).(string)
+	if md == nil || !md.IsExists(key) {
+		return
 	}
+
+	switch vv := md.Get(key).(type) {
+	case string:
+		v = vv
+	case int:
+		v = strconv.FormatInt(int64(vv), 10)
+	case int64:
+		v = strconv.FormatInt(vv, 10)
+	case uint:
+		v = strconv.FormatUint(uint64(vv), 10)
+	case uint64:
+		v = strconv.FormatUint(uint64(vv), 10)
+	case bool:
+		v = strconv.FormatBool(vv)
+	case float32:
+		v = strconv.FormatFloat(float64(vv), 'f', -1, 32)
+	case float64:
+		v = strconv.FormatFloat(float64(vv), 'f', -1, 64)
+	}
+
 	return
 }
 
