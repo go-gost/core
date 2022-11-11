@@ -14,6 +14,7 @@ type NodeOptions struct {
 	Resolver   resolver.Resolver
 	HostMapper hosts.HostMapper
 	Metadata   metadata.Metadata
+	Host       string
 }
 
 type NodeOption func(*NodeOptions)
@@ -39,6 +40,12 @@ func ResoloverNodeOption(resolver resolver.Resolver) NodeOption {
 func HostMapperNodeOption(m hosts.HostMapper) NodeOption {
 	return func(o *NodeOptions) {
 		o.HostMapper = m
+	}
+}
+
+func HostNodeOption(host string) NodeOption {
+	return func(o *NodeOptions) {
+		o.Host = host
 	}
 }
 

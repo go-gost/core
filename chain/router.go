@@ -182,6 +182,7 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 			InterfaceDialOption(r.options.IfceName),
 			SockOptsDialOption(r.options.SockOpts),
 			LoggerDialOption(r.options.Logger),
+			TimeoutDialOption(r.options.Timeout),
 		)
 		if err == nil {
 			break
