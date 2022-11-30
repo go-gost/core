@@ -3,8 +3,9 @@ package chain
 import "context"
 
 type SelectOptions struct {
-	Addr string
-	Host string
+	Addr     string
+	Host     string
+	Protocol string
 }
 
 type SelectOption func(*SelectOptions)
@@ -18,6 +19,12 @@ func AddrSelectOption(addr string) SelectOption {
 func HostSelectOption(host string) SelectOption {
 	return func(o *SelectOptions) {
 		o.Host = host
+	}
+}
+
+func ProtocolSelectOption(protocol string) SelectOption {
+	return func(o *SelectOptions) {
+		o.Protocol = protocol
 	}
 }
 
