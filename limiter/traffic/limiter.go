@@ -7,6 +7,7 @@ type Limiter interface {
 	// the returned value is less or equal to n.
 	Wait(ctx context.Context, n int) int
 	Limit() int
+	Set(n int)
 }
 
 type TrafficLimiter interface {

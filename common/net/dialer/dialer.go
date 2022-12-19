@@ -26,15 +26,16 @@ type NetDialer struct {
 	Timeout   time.Duration
 	DialFunc  func(ctx context.Context, network, addr string) (net.Conn, error)
 	Logger    logger.Logger
-	deadline  time.Time
 }
 
 func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Conn, err error) {
 	if d == nil {
 		d = DefaultNetDialer
 	}
-	if d.Timeout <= 0 {
-		d.Timeout = DefaultTimeout
+
+	timeout := d.Timeout
+	if timeout <= 0 {
+		timeout = DefaultTimeout
 	}
 
 	if d.DialFunc != nil {
@@ -46,8 +47,8 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 		log = logger.Default()
 	}
 
+	deadline := time.Now().Add(timeout)
 	ifces := strings.Split(d.Interface, ",")
-	d.deadline = time.Now().Add(d.Timeout)
 	for _, ifce := range ifces {
 		strict := strings.HasSuffix(ifce, "!")
 		ifce = strings.TrimSuffix(ifce, "!")
@@ -59,7 +60,7 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 		}
 
 		for _, ifAddr := range ifAddrs {
-			conn, err = d.dialOnce(ctx, network, addr, ifceName, ifAddr, log)
+			conn, err = d.dialOnce(ctx, network, addr, ifceName, ifAddr, deadline, log)
 			if err == nil {
 				return
 			}
@@ -72,7 +73,7 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 				return
 			}
 
-			if time.Until(d.deadline) < 0 {
+			if time.Until(deadline) < 0 {
 				return
 			}
 		}
@@ -81,7 +82,7 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 	return
 }
 
-func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string, ifAddr net.Addr, log logger.Logger) (net.Conn, error) {
+func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string, ifAddr net.Addr, deadline time.Time, log logger.Logger) (net.Conn, error) {
 	if ifceName != "" {
 		log.Debugf("interface: %s %v/%s", ifceName, ifAddr, network)
 	}
@@ -125,7 +126,7 @@ func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string
 		return nil, fmt.Errorf("dial: unsupported network %s", network)
 	}
 	netd := net.Dialer{
-		Deadline:  d.deadline,
+		Deadline:  deadline,
 		LocalAddr: ifAddr,
 		Control: func(network, address string, c syscall.RawConn) error {
 			return c.Control(func(fd uintptr) {
