@@ -20,6 +20,7 @@ type Options struct {
 	RateLimiter rate.RateLimiter
 	TLSConfig   *tls.Config
 	Logger      logger.Logger
+	Service     string
 }
 
 type Option func(opts *Options)
@@ -63,6 +64,12 @@ func TLSConfigOption(tlsConfig *tls.Config) Option {
 func LoggerOption(logger logger.Logger) Option {
 	return func(opts *Options) {
 		opts.Logger = logger
+	}
+}
+
+func ServiceOption(service string) Option {
+	return func(opts *Options) {
+		opts.Service = service
 	}
 }
 
