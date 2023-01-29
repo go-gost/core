@@ -8,6 +8,16 @@ import (
 	"github.com/go-gost/core/selector"
 )
 
+type HTTPNodeSettings struct {
+	Host   string
+	Header map[string]string
+}
+
+type TLSNodeSettings struct {
+	ServerName string
+	Secure     bool
+}
+
 type NodeOptions struct {
 	Transport  *Transport
 	Bypass     bypass.Bypass
@@ -16,6 +26,8 @@ type NodeOptions struct {
 	Metadata   metadata.Metadata
 	Host       string
 	Protocol   string
+	HTTP       *HTTPNodeSettings
+	TLS        *TLSNodeSettings
 }
 
 type NodeOption func(*NodeOptions)
@@ -59,6 +71,18 @@ func ProtocolNodeOption(protocol string) NodeOption {
 func MetadataNodeOption(md metadata.Metadata) NodeOption {
 	return func(o *NodeOptions) {
 		o.Metadata = md
+	}
+}
+
+func HTTPNodeOption(httpSettings *HTTPNodeSettings) NodeOption {
+	return func(o *NodeOptions) {
+		o.HTTP = httpSettings
+	}
+}
+
+func TLSNodeOption(tlsSettings *TLSNodeSettings) NodeOption {
+	return func(o *NodeOptions) {
+		o.TLS = tlsSettings
 	}
 }
 
