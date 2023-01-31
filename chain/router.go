@@ -204,7 +204,7 @@ func (r *Router) Bind(ctx context.Context, network, address string, opts ...Bind
 		var route Route
 		if r.options.Chain != nil {
 			route = r.options.Chain.Route(ctx, network, address)
-			if len(route.Nodes()) == 0 {
+			if route == nil || len(route.Nodes()) == 0 {
 				err = ErrEmptyRoute
 				return
 			}
@@ -219,6 +219,9 @@ func (r *Router) Bind(ctx context.Context, network, address string, opts ...Bind
 			r.options.Logger.Debugf("route(retry=%d) %s", i, buf.String())
 		}
 
+		if route == nil {
+			route = DefaultRoute
+		}
 		ln, err = route.Bind(ctx, network, address, opts...)
 		if err == nil {
 			break
