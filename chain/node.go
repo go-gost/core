@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"github.com/go-gost/core/auth"
 	"github.com/go-gost/core/bypass"
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/metadata"
@@ -28,6 +29,7 @@ type NodeOptions struct {
 	Protocol   string
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
+	Auther     auth.Authenticator
 }
 
 type NodeOption func(*NodeOptions)
@@ -83,6 +85,12 @@ func HTTPNodeOption(httpSettings *HTTPNodeSettings) NodeOption {
 func TLSNodeOption(tlsSettings *TLSNodeSettings) NodeOption {
 	return func(o *NodeOptions) {
 		o.TLS = tlsSettings
+	}
+}
+
+func AutherNodeOption(auther auth.Authenticator) NodeOption {
+	return func(o *NodeOptions) {
+		o.Auther = auther
 	}
 }
 
