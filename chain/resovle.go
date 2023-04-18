@@ -24,7 +24,7 @@ func Resolve(ctx context.Context, network, addr string, r resolver.Resolver, hos
 	}
 
 	if hosts != nil {
-		if ips, _ := hosts.Lookup(network, host); len(ips) > 0 {
+		if ips, _ := hosts.Lookup(ctx, network, host); len(ips) > 0 {
 			log.Debugf("hit host mapper: %s -> %s", host, ips)
 			return net.JoinHostPort(ips[0].String(), port), nil
 		}

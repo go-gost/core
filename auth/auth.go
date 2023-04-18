@@ -1,8 +1,10 @@
 package auth
 
+import "context"
+
 // Authenticator is an interface for user authentication.
 type Authenticator interface {
-	Authenticate(user, password string) bool
+	Authenticate(ctx context.Context, user, password string) bool
 }
 
 type authenticatorGroup struct {
@@ -15,12 +17,12 @@ func AuthenticatorGroup(authers ...Authenticator) Authenticator {
 	}
 }
 
-func (p *authenticatorGroup) Authenticate(user, password string) bool {
+func (p *authenticatorGroup) Authenticate(ctx context.Context, user, password string) bool {
 	if len(p.authers) == 0 {
 		return true
 	}
 	for _, auther := range p.authers {
-		if auther != nil && auther.Authenticate(user, password) {
+		if auther != nil && auther.Authenticate(ctx, user, password) {
 			return true
 		}
 	}
