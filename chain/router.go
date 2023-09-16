@@ -155,6 +155,12 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 	r.options.Logger.Debugf("dial %s/%s", address, network)
 
 	for i := 0; i < count; i++ {
+		address, err = Resolve(ctx, "ip", address, r.options.Resolver, r.options.HostMapper, r.options.Logger)
+		if err != nil {
+			r.options.Logger.Error(err)
+			break
+		}
+
 		var route Route
 		if r.options.Chain != nil {
 			route = r.options.Chain.Route(ctx, network, address)
@@ -167,12 +173,6 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 			}
 			fmt.Fprintf(&buf, "%s", address)
 			r.options.Logger.Debugf("route(retry=%d) %s", i, buf.String())
-		}
-
-		address, err = Resolve(ctx, "ip", address, r.options.Resolver, r.options.HostMapper, r.options.Logger)
-		if err != nil {
-			r.options.Logger.Error(err)
-			break
 		}
 
 		if route == nil {
