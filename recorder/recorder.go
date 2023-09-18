@@ -1,6 +1,8 @@
 package recorder
 
-import "context"
+import (
+	"context"
+)
 
 type Recorder interface {
 	Record(ctx context.Context, b []byte) error
@@ -9,6 +11,13 @@ type Recorder interface {
 type RecorderObject struct {
 	Recorder Recorder
 	Record   string
+	Options  *Options
+}
+
+type Options struct {
+	Direction       bool
+	TimestampFormat string
+	Hexdump         bool
 }
 
 const (
