@@ -4,7 +4,7 @@ import "context"
 
 // Authenticator is an interface for user authentication.
 type Authenticator interface {
-	Authenticate(ctx context.Context, user, password string) (ok bool, id string)
+	Authenticate(ctx context.Context, user, password string) (id string, ok bool)
 }
 
 type authenticatorGroup struct {
@@ -17,18 +17,18 @@ func AuthenticatorGroup(authers ...Authenticator) Authenticator {
 	}
 }
 
-func (p *authenticatorGroup) Authenticate(ctx context.Context, user, password string) (bool, string) {
+func (p *authenticatorGroup) Authenticate(ctx context.Context, user, password string) (string, bool) {
 	if len(p.authers) == 0 {
-		return false, ""
+		return "", false
 	}
 	for _, auther := range p.authers {
 		if auther == nil {
 			continue
 		}
 
-		if ok, id := auther.Authenticate(ctx, user, password); ok {
-			return ok, id
+		if id, ok := auther.Authenticate(ctx, user, password); ok {
+			return id, ok
 		}
 	}
-	return false, ""
+	return "", false
 }
