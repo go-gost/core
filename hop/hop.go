@@ -1,6 +1,10 @@
-package chain
+package hop
 
-import "context"
+import (
+	"context"
+
+	"github.com/go-gost/core/chain"
+)
 
 type SelectOptions struct {
 	Addr     string
@@ -29,6 +33,9 @@ func ProtocolSelectOption(protocol string) SelectOption {
 }
 
 type Hop interface {
-	Nodes() []*Node
-	Select(ctx context.Context, opts ...SelectOption) *Node
+	Select(ctx context.Context, opts ...SelectOption) *chain.Node
+}
+
+type NodeList interface {
+	Nodes() []*chain.Node
 }
