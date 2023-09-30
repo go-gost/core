@@ -7,12 +7,19 @@ import (
 )
 
 type SelectOptions struct {
+	Network  string
 	Addr     string
 	Host     string
 	Protocol string
 }
 
 type SelectOption func(*SelectOptions)
+
+func NetworkSelectOption(network string) SelectOption {
+	return func(so *SelectOptions) {
+		so.Network = network
+	}
+}
 
 func AddrSelectOption(addr string) SelectOption {
 	return func(o *SelectOptions) {

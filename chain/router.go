@@ -155,7 +155,8 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 	r.options.Logger.Debugf("dial %s/%s", address, network)
 
 	for i := 0; i < count; i++ {
-		address, err = Resolve(ctx, "ip", address, r.options.Resolver, r.options.HostMapper, r.options.Logger)
+		var ipAddr string
+		ipAddr, err = Resolve(ctx, "ip", address, r.options.Resolver, r.options.HostMapper, r.options.Logger)
 		if err != nil {
 			r.options.Logger.Error(err)
 			break
@@ -163,7 +164,7 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 
 		var route Route
 		if r.options.Chain != nil {
-			route = r.options.Chain.Route(ctx, network, address)
+			route = r.options.Chain.Route(ctx, network, ipAddr, WithHostRouteOption(address))
 		}
 
 		if r.options.Logger.IsLevelEnabled(logger.DebugLevel) {
@@ -171,14 +172,14 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 			for _, node := range routePath(route) {
 				fmt.Fprintf(&buf, "%s@%s > ", node.Name, node.Addr)
 			}
-			fmt.Fprintf(&buf, "%s", address)
+			fmt.Fprintf(&buf, "%s", ipAddr)
 			r.options.Logger.Debugf("route(retry=%d) %s", i, buf.String())
 		}
 
 		if route == nil {
 			route = DefaultRoute
 		}
-		conn, err = route.Dial(ctx, network, address,
+		conn, err = route.Dial(ctx, network, ipAddr,
 			InterfaceDialOption(r.options.IfceName),
 			SockOptsDialOption(r.options.SockOpts),
 			LoggerDialOption(r.options.Logger),
