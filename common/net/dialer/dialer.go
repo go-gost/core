@@ -47,6 +47,13 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 		log = logger.Default()
 	}
 
+	switch network {
+	case "unix":
+		netd := net.Dialer{}
+		return netd.DialContext(ctx, network, addr)
+	default:
+	}
+
 	deadline := time.Now().Add(timeout)
 	ifces := strings.Split(d.Interface, ",")
 	for _, ifce := range ifces {

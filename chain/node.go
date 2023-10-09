@@ -26,6 +26,7 @@ type NodeOptions struct {
 	HostMapper hosts.HostMapper
 	Metadata   metadata.Metadata
 	Host       string
+	Network    string
 	Protocol   string
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
@@ -61,6 +62,12 @@ func HostMapperNodeOption(m hosts.HostMapper) NodeOption {
 func HostNodeOption(host string) NodeOption {
 	return func(o *NodeOptions) {
 		o.Host = host
+	}
+}
+
+func NetworkNodeOption(network string) NodeOption {
+	return func(o *NodeOptions) {
+		o.Network = network
 	}
 }
 
