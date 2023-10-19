@@ -14,7 +14,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 128)
-					return &b
+					return b
 				},
 			},
 		},
@@ -23,7 +23,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 512)
-					return &b
+					return b
 				},
 			},
 		},
@@ -32,7 +32,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 1024)
-					return &b
+					return b
 				},
 			},
 		},
@@ -41,7 +41,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 2048)
-					return &b
+					return b
 				},
 			},
 		},
@@ -50,7 +50,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 4096)
-					return &b
+					return b
 				},
 			},
 		},
@@ -59,7 +59,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 8192)
-					return &b
+					return b
 				},
 			},
 		},
@@ -68,7 +68,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 16*1024)
-					return &b
+					return b
 				},
 			},
 		},
@@ -77,7 +77,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 32*1024)
-					return &b
+					return b
 				},
 			},
 		},
@@ -86,7 +86,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 64*1024)
-					return &b
+					return b
 				},
 			},
 		},
@@ -95,7 +95,7 @@ var (
 			pool: sync.Pool{
 				New: func() any {
 					b := make([]byte, 65*1024)
-					return &b
+					return b
 				},
 			},
 		},
@@ -103,21 +103,20 @@ var (
 )
 
 // Get returns a buffer of specified size.
-func Get(size int) *[]byte {
+func Get(size int) []byte {
 	for i := range pools {
 		if size <= pools[i].size {
-			b := pools[i].pool.Get().(*[]byte)
-			*b = (*b)[:size]
-			return b
+			b := pools[i].pool.Get().([]byte)
+			return b[:size]
 		}
 	}
 	b := make([]byte, size)
-	return &b
+	return b
 }
 
-func Put(b *[]byte) {
+func Put(b []byte) {
 	for i := range pools {
-		if cap(*b) == pools[i].size {
+		if cap(b) == pools[i].size {
 			pools[i].pool.Put(b)
 		}
 	}

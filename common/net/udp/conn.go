@@ -37,7 +37,7 @@ func (c *conn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
 	case bb := <-c.rc:
 		n = copy(b, bb)
 		c.SetIdle(false)
-		bufpool.Put(&bb)
+		bufpool.Put(bb)
 
 	case <-c.closed:
 		err = net.ErrClosed

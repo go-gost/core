@@ -69,7 +69,7 @@ func (ln *listener) listenLoop() {
 
 		b := bufpool.Get(ln.config.ReadBufferSize)
 
-		n, raddr, err := ln.conn.ReadFrom(*b)
+		n, raddr, err := ln.conn.ReadFrom(b)
 		if err != nil {
 			ln.errChan <- err
 			close(ln.errChan)
@@ -82,7 +82,7 @@ func (ln *listener) listenLoop() {
 			continue
 		}
 
-		if err := c.WriteQueue((*b)[:n]); err != nil {
+		if err := c.WriteQueue(b[:n]); err != nil {
 			ln.config.Logger.Warn("data discarded: ", err)
 		}
 	}
