@@ -4,6 +4,7 @@ import "context"
 
 type Options struct {
 	Host string
+	Path string
 }
 
 type Option func(opts *Options)
@@ -11,6 +12,12 @@ type Option func(opts *Options)
 func WithHostOpton(host string) Option {
 	return func(opts *Options) {
 		opts.Host = host
+	}
+}
+
+func WithPathOption(path string) Option {
+	return func(opts *Options) {
+		opts.Path = path
 	}
 }
 
