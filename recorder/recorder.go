@@ -4,8 +4,11 @@ import (
 	"context"
 )
 
+type RecordOptions struct{}
+type RecordOption func(opts *RecordOptions)
+
 type Recorder interface {
-	Record(ctx context.Context, b []byte) error
+	Record(ctx context.Context, b []byte, opts ...RecordOption) error
 }
 
 type RecorderObject struct {

@@ -2,8 +2,11 @@ package admission
 
 import "context"
 
+type Options struct{}
+type Option func(opts *Options)
+
 type Admission interface {
-	Admit(ctx context.Context, addr string) bool
+	Admit(ctx context.Context, addr string, opts ...Option) bool
 }
 
 type admissionGroup struct {
@@ -16,9 +19,9 @@ func AdmissionGroup(admissions ...Admission) Admission {
 	}
 }
 
-func (p *admissionGroup) Admit(ctx context.Context, addr string) bool {
+func (p *admissionGroup) Admit(ctx context.Context, addr string, opts ...Option) bool {
 	for _, admission := range p.admissions {
-		if admission != nil && !admission.Admit(ctx, addr) {
+		if admission != nil && !admission.Admit(ctx, addr, opts...) {
 			return false
 		}
 	}
