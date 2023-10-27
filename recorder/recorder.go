@@ -4,8 +4,17 @@ import (
 	"context"
 )
 
-type RecordOptions struct{}
+type RecordOptions struct {
+	Metadata any
+}
+
 type RecordOption func(opts *RecordOptions)
+
+func MetadataReocrdOption(md any) RecordOption {
+	return func(opts *RecordOptions) {
+		opts.Metadata = md
+	}
+}
 
 type Recorder interface {
 	Record(ctx context.Context, b []byte, opts ...RecordOption) error
