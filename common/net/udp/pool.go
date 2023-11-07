@@ -29,6 +29,10 @@ func (p *connPool) WithLogger(logger logger.Logger) *connPool {
 }
 
 func (p *connPool) Get(key any) (c *conn, ok bool) {
+	if p == nil {
+		return
+	}
+
 	v, ok := p.m.Load(key)
 	if ok {
 		c, ok = v.(*conn)
@@ -37,14 +41,25 @@ func (p *connPool) Get(key any) (c *conn, ok bool) {
 }
 
 func (p *connPool) Set(key any, c *conn) {
+	if p == nil {
+		return
+	}
+
 	p.m.Store(key, c)
 }
 
 func (p *connPool) Delete(key any) {
+	if p == nil {
+		return
+	}
 	p.m.Delete(key)
 }
 
 func (p *connPool) Close() {
+	if p == nil {
+		return
+	}
+
 	select {
 	case <-p.closed:
 		return
