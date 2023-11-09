@@ -9,8 +9,9 @@ import (
 type SelectOptions struct {
 	Network  string
 	Addr     string
-	Host     string
 	Protocol string
+	Host     string
+	Path     string
 }
 
 type SelectOption func(*SelectOptions)
@@ -27,15 +28,21 @@ func AddrSelectOption(addr string) SelectOption {
 	}
 }
 
+func ProtocolSelectOption(protocol string) SelectOption {
+	return func(o *SelectOptions) {
+		o.Protocol = protocol
+	}
+}
+
 func HostSelectOption(host string) SelectOption {
 	return func(o *SelectOptions) {
 		o.Host = host
 	}
 }
 
-func ProtocolSelectOption(protocol string) SelectOption {
+func PathSelectOption(path string) SelectOption {
 	return func(o *SelectOptions) {
-		o.Protocol = protocol
+		o.Path = path
 	}
 }
 

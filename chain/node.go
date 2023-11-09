@@ -17,6 +17,11 @@ type HTTPNodeSettings struct {
 type TLSNodeSettings struct {
 	ServerName string
 	Secure     bool
+	Options    struct {
+		MinVersion   string
+		MaxVersion   string
+		CipherSuites []string
+	}
 }
 
 type NodeOptions struct {
@@ -28,6 +33,7 @@ type NodeOptions struct {
 	Host       string
 	Network    string
 	Protocol   string
+	Path       string
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
 	Auther     auth.Authenticator
@@ -74,6 +80,12 @@ func NetworkNodeOption(network string) NodeOption {
 func ProtocolNodeOption(protocol string) NodeOption {
 	return func(o *NodeOptions) {
 		o.Protocol = protocol
+	}
+}
+
+func PathNodeOption(path string) NodeOption {
+	return func(o *NodeOptions) {
+		o.Path = path
 	}
 }
 
