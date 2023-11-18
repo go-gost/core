@@ -8,6 +8,7 @@ import (
 	"github.com/go-gost/core/bypass"
 	"github.com/go-gost/core/chain"
 	"github.com/go-gost/core/limiter/rate"
+	"github.com/go-gost/core/limiter/traffic"
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/metadata"
 )
@@ -18,6 +19,7 @@ type Options struct {
 	Auth        *url.Userinfo
 	Auther      auth.Authenticator
 	RateLimiter rate.RateLimiter
+	Limiter     traffic.TrafficLimiter
 	TLSConfig   *tls.Config
 	Logger      logger.Logger
 	Service     string
@@ -52,6 +54,12 @@ func AutherOption(auther auth.Authenticator) Option {
 func RateLimiterOption(limiter rate.RateLimiter) Option {
 	return func(opts *Options) {
 		opts.RateLimiter = limiter
+	}
+}
+
+func TrafficLimiterOption(limiter traffic.TrafficLimiter) Option {
+	return func(opts *Options) {
+		opts.Limiter = limiter
 	}
 }
 
