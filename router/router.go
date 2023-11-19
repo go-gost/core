@@ -17,8 +17,6 @@ type Route struct {
 }
 
 type Router interface {
-	// SetRoute adds or updates a route for the router.
-	SetRoute(ctx context.Context, route *Route, opts ...Option) bool
 	// GetRoute queries a route by destination IP address.
 	GetRoute(ctx context.Context, dst net.IP, opts ...Option) *Route
 }
