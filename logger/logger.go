@@ -55,3 +55,109 @@ func Default() Logger {
 func SetDefault(logger Logger) {
 	defaultLogger = logger
 }
+
+type loggerGroup struct {
+	loggers []Logger
+}
+
+func LoggerGroup(loggers ...Logger) Logger {
+	return &loggerGroup{
+		loggers: loggers,
+	}
+}
+
+func (l *loggerGroup) WithFields(m map[string]any) Logger {
+	lg := &loggerGroup{}
+	for i := range l.loggers {
+		lg.loggers = append(lg.loggers, l.loggers[i].WithFields(m))
+	}
+	return lg
+}
+
+func (l *loggerGroup) Trace(args ...any) {
+	for _, lg := range l.loggers {
+		lg.Trace(args...)
+	}
+}
+
+func (l *loggerGroup) Tracef(format string, args ...any) {
+	for _, lg := range l.loggers {
+		lg.Tracef(format, args...)
+	}
+}
+
+func (l *loggerGroup) Debug(args ...any) {
+	for _, lg := range l.loggers {
+		lg.Debug(args...)
+	}
+}
+
+func (l *loggerGroup) Debugf(format string, args ...any) {
+	for _, lg := range l.loggers {
+		lg.Debugf(format, args...)
+	}
+}
+
+func (l *loggerGroup) Info(args ...any) {
+	for _, lg := range l.loggers {
+		lg.Info(args...)
+	}
+}
+
+func (l *loggerGroup) Infof(format string, args ...any) {
+	for _, lg := range l.loggers {
+		lg.Infof(format, args...)
+	}
+}
+
+func (l *loggerGroup) Warn(args ...any) {
+	for _, lg := range l.loggers {
+		lg.Warn(args...)
+	}
+}
+
+func (l *loggerGroup) Warnf(format string, args ...any) {
+	for _, lg := range l.loggers {
+		lg.Warnf(format, args...)
+	}
+}
+
+func (l *loggerGroup) Error(args ...any) {
+	for _, lg := range l.loggers {
+		lg.Error(args...)
+	}
+}
+
+func (l *loggerGroup) Errorf(format string, args ...any) {
+	for _, lg := range l.loggers {
+		lg.Errorf(format, args...)
+	}
+}
+
+func (l *loggerGroup) Fatal(args ...any) {
+	for _, lg := range l.loggers {
+		lg.Fatal(args...)
+	}
+}
+
+func (l *loggerGroup) Fatalf(format string, args ...any) {
+	for _, lg := range l.loggers {
+		lg.Fatalf(format, args...)
+	}
+}
+
+func (l *loggerGroup) GetLevel() LogLevel {
+	for _, lg := range l.loggers {
+		return lg.GetLevel()
+	}
+	return InfoLevel
+}
+
+func (l *loggerGroup) IsLevelEnabled(level LogLevel) bool {
+	for _, lg := range l.loggers {
+		if lg.IsLevelEnabled(level) {
+			return true
+		}
+	}
+	return false
+}
