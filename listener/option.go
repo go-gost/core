@@ -10,6 +10,7 @@ import (
 	"github.com/go-gost/core/limiter/conn"
 	"github.com/go-gost/core/limiter/traffic"
 	"github.com/go-gost/core/logger"
+	"github.com/go-gost/x/stats"
 )
 
 type Options struct {
@@ -21,6 +22,7 @@ type Options struct {
 	TrafficLimiter traffic.TrafficLimiter
 	ConnLimiter    conn.ConnLimiter
 	Chain          chain.Chainer
+	Stats          *stats.Stats
 	Logger         logger.Logger
 	Service        string
 	ProxyProtocol  int
@@ -73,6 +75,12 @@ func ConnLimiterOption(limiter conn.ConnLimiter) Option {
 func ChainOption(chain chain.Chainer) Option {
 	return func(opts *Options) {
 		opts.Chain = chain
+	}
+}
+
+func StatsOption(stats *stats.Stats) Option {
+	return func(opts *Options) {
+		opts.Stats = stats
 	}
 }
 

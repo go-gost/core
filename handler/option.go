@@ -11,6 +11,7 @@ import (
 	"github.com/go-gost/core/limiter/traffic"
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/metadata"
+	"github.com/go-gost/core/observer"
 )
 
 type Options struct {
@@ -22,6 +23,7 @@ type Options struct {
 	Limiter     traffic.TrafficLimiter
 	TLSConfig   *tls.Config
 	Logger      logger.Logger
+	Observer observer.Observer
 	Service     string
 }
 
@@ -72,6 +74,12 @@ func TLSConfigOption(tlsConfig *tls.Config) Option {
 func LoggerOption(logger logger.Logger) Option {
 	return func(opts *Options) {
 		opts.Logger = logger
+	}
+}
+
+func ObserverOption(observer observer.Observer) Option {
+	return func(opts *Options) {
+		opts.Observer = observer
 	}
 }
 
