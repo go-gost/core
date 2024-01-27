@@ -12,6 +12,7 @@ import (
 type HTTPNodeSettings struct {
 	Host   string
 	Header map[string]string
+	Auther auth.Authenticator
 }
 
 type TLSNodeSettings struct {
@@ -36,7 +37,8 @@ type NodeOptions struct {
 	Path       string
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
-	Auther     auth.Authenticator
+	// DEPRECATED by HTTP.Auther
+	Auther auth.Authenticator
 }
 
 type NodeOption func(*NodeOptions)
@@ -104,12 +106,6 @@ func HTTPNodeOption(httpSettings *HTTPNodeSettings) NodeOption {
 func TLSNodeOption(tlsSettings *TLSNodeSettings) NodeOption {
 	return func(o *NodeOptions) {
 		o.TLS = tlsSettings
-	}
-}
-
-func AutherNodeOption(auther auth.Authenticator) NodeOption {
-	return func(o *NodeOptions) {
-		o.Auther = auther
 	}
 }
 
