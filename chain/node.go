@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"regexp"
+
 	"github.com/go-gost/core/auth"
 	"github.com/go-gost/core/bypass"
 	"github.com/go-gost/core/hosts"
@@ -9,10 +11,16 @@ import (
 	"github.com/go-gost/core/selector"
 )
 
+type HTTPURLRewriteSetting struct {
+	Pattern     *regexp.Regexp
+	Replacement string
+}
+
 type HTTPNodeSettings struct {
-	Host   string
-	Header map[string]string
-	Auther auth.Authenticator
+	Host    string
+	Header  map[string]string
+	Auther  auth.Authenticator
+	Rewrite []HTTPURLRewriteSetting
 }
 
 type TLSNodeSettings struct {
@@ -37,8 +45,6 @@ type NodeOptions struct {
 	Path       string
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
-	// DEPRECATED by HTTP.Auther
-	Auther auth.Authenticator
 }
 
 type NodeOption func(*NodeOptions)
