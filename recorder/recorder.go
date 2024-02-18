@@ -10,7 +10,7 @@ type RecordOptions struct {
 
 type RecordOption func(opts *RecordOptions)
 
-func MetadataReocrdOption(md any) RecordOption {
+func MetadataRecordOption(md any) RecordOption {
 	return func(opts *RecordOptions) {
 		opts.Metadata = md
 	}
