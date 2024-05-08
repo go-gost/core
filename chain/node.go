@@ -11,6 +11,12 @@ import (
 	"github.com/go-gost/core/selector"
 )
 
+type NodeFilterSettings struct {
+	Protocol string
+	Host     string
+	Path     string
+}
+
 type HTTPURLRewriteSetting struct {
 	Pattern     *regexp.Regexp
 	Replacement string
@@ -34,17 +40,15 @@ type TLSNodeSettings struct {
 }
 
 type NodeOptions struct {
+	Network    string
 	Transport  *Transport
 	Bypass     bypass.Bypass
 	Resolver   resolver.Resolver
 	HostMapper hosts.HostMapper
-	Metadata   metadata.Metadata
-	Host       string
-	Network    string
-	Protocol   string
-	Path       string
+	Filter     *NodeFilterSettings
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
+	Metadata   metadata.Metadata
 }
 
 type NodeOption func(*NodeOptions)
@@ -73,33 +77,15 @@ func HostMapperNodeOption(m hosts.HostMapper) NodeOption {
 	}
 }
 
-func HostNodeOption(host string) NodeOption {
-	return func(o *NodeOptions) {
-		o.Host = host
-	}
-}
-
 func NetworkNodeOption(network string) NodeOption {
 	return func(o *NodeOptions) {
 		o.Network = network
 	}
 }
 
-func ProtocolNodeOption(protocol string) NodeOption {
+func NodeFilterOption(filter *NodeFilterSettings) NodeOption {
 	return func(o *NodeOptions) {
-		o.Protocol = protocol
-	}
-}
-
-func PathNodeOption(path string) NodeOption {
-	return func(o *NodeOptions) {
-		o.Path = path
-	}
-}
-
-func MetadataNodeOption(md metadata.Metadata) NodeOption {
-	return func(o *NodeOptions) {
-		o.Metadata = md
+		o.Filter = filter
 	}
 }
 
@@ -112,6 +98,12 @@ func HTTPNodeOption(httpSettings *HTTPNodeSettings) NodeOption {
 func TLSNodeOption(tlsSettings *TLSNodeSettings) NodeOption {
 	return func(o *NodeOptions) {
 		o.TLS = tlsSettings
+	}
+}
+
+func MetadataNodeOption(md metadata.Metadata) NodeOption {
+	return func(o *NodeOptions) {
+		o.Metadata = md
 	}
 }
 
