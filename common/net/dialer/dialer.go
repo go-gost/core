@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
 	xnet "github.com/go-gost/core/common/net"
 	"github.com/go-gost/core/logger"
+	"github.com/vishvananda/netns"
 )
 
 const (
@@ -22,6 +24,7 @@ var (
 
 type NetDialer struct {
 	Interface string
+	Netns     string
 	Mark      int
 	Timeout   time.Duration
 	DialFunc  func(ctx context.Context, network, addr string) (net.Conn, error)
@@ -33,6 +36,32 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 		d = DefaultNetDialer
 	}
 
+	log := d.Logger
+	if log == nil {
+		log = logger.Default()
+	}
+
+	if d.Netns != "" {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		originNs, err := netns.Get()
+		if err != nil {
+			return nil, fmt.Errorf("netns.Get(): %v", err)
+		}
+		defer netns.Set(originNs)
+
+		ns, err := netns.GetFromName(d.Netns)
+		if err != nil {
+			return nil, fmt.Errorf("netns.GetFromName(%s): %v", d.Netns, err)
+		}
+		defer ns.Close()
+
+		if err := netns.Set(ns); err != nil {
+			return nil, fmt.Errorf("netns.Set(%s): %v", d.Netns, err)
+		}
+	}
+
 	timeout := d.Timeout
 	if timeout <= 0 {
 		timeout = DefaultTimeout
@@ -40,11 +69,6 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 
 	if d.DialFunc != nil {
 		return d.DialFunc(ctx, network, addr)
-	}
-
-	log := d.Logger
-	if log == nil {
-		log = logger.Default()
 	}
 
 	switch network {
@@ -150,5 +174,10 @@ func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string
 			})
 		},
 	}
+	if d.Netns != "" {
+		// https://github.com/golang/go/issues/44922#issuecomment-796645858
+		netd.FallbackDelay = -1
+	}
+
 	return netd.DialContext(ctx, network, addr)
 }

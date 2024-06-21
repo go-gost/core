@@ -21,6 +21,7 @@ type RouterOptions struct {
 	Retries    int
 	Timeout    time.Duration
 	IfceName   string
+	Netns      string
 	SockOpts   *SockOpts
 	Chain      Chainer
 	Resolver   resolver.Resolver
@@ -34,6 +35,12 @@ type RouterOption func(*RouterOptions)
 func InterfaceRouterOption(ifceName string) RouterOption {
 	return func(o *RouterOptions) {
 		o.IfceName = ifceName
+	}
+}
+
+func NetnsRouterOption(netns string) RouterOption {
+	return func(o *RouterOptions) {
+		o.Netns = netns
 	}
 }
 
@@ -181,6 +188,7 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 		}
 		conn, err = route.Dial(ctx, network, ipAddr,
 			InterfaceDialOption(r.options.IfceName),
+			NetnsDialOption(r.options.Netns),
 			SockOptsDialOption(r.options.SockOpts),
 			LoggerDialOption(r.options.Logger),
 			TimeoutDialOption(r.options.Timeout),

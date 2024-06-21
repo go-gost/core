@@ -13,6 +13,7 @@ import (
 type TransportOptions struct {
 	Addr     string
 	IfceName string
+	Netns    string
 	SockOpts *SockOpts
 	Route    Route
 	Timeout  time.Duration
@@ -29,6 +30,12 @@ func AddrTransportOption(addr string) TransportOption {
 func InterfaceTransportOption(ifceName string) TransportOption {
 	return func(o *TransportOptions) {
 		o.IfceName = ifceName
+	}
+}
+
+func NetnsTransportOption(netns string) TransportOption {
+	return func(o *TransportOptions) {
+		o.Netns = netns
 	}
 }
 
@@ -73,6 +80,7 @@ func NewTransport(d dialer.Dialer, c connector.Connector, opts ...TransportOptio
 func (tr *Transport) Dial(ctx context.Context, addr string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
 		Interface: tr.options.IfceName,
+		Netns:     tr.options.Netns,
 		Timeout:   tr.options.Timeout,
 	}
 	if tr.options.SockOpts != nil {
@@ -108,6 +116,7 @@ func (tr *Transport) Handshake(ctx context.Context, conn net.Conn) (net.Conn, er
 func (tr *Transport) Connect(ctx context.Context, conn net.Conn, network, address string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
 		Interface: tr.options.IfceName,
+		Netns:     tr.options.Netns,
 		Timeout:   tr.options.Timeout,
 	}
 	if tr.options.SockOpts != nil {
