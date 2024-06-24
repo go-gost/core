@@ -23,8 +23,9 @@ type Options struct {
 	Limiter     traffic.TrafficLimiter
 	TLSConfig   *tls.Config
 	Logger      logger.Logger
-	Observer observer.Observer
+	Observer    observer.Observer
 	Service     string
+	Netns       string
 }
 
 type Option func(opts *Options)
@@ -86,6 +87,12 @@ func ObserverOption(observer observer.Observer) Option {
 func ServiceOption(service string) Option {
 	return func(opts *Options) {
 		opts.Service = service
+	}
+}
+
+func NetnsOption(netns string) Option {
+	return func(opts *Options) {
+		opts.Netns = netns
 	}
 }
 

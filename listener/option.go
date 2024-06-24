@@ -26,6 +26,7 @@ type Options struct {
 	Logger         logger.Logger
 	Service        string
 	ProxyProtocol  int
+	Netns          string
 }
 
 type Option func(opts *Options)
@@ -99,5 +100,11 @@ func ServiceOption(service string) Option {
 func ProxyProtocolOption(ppv int) Option {
 	return func(opts *Options) {
 		opts.ProxyProtocol = ppv
+	}
+}
+
+func NetnsOption(netns string) Option {
+	return func(opts *Options) {
+		opts.Netns = netns
 	}
 }
