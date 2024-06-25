@@ -36,7 +36,6 @@ func (*route) Dial(ctx context.Context, network, address string, opts ...DialOpt
 	}
 
 	netd := dialer.NetDialer{
-		Timeout:   options.Timeout,
 		Interface: options.Interface,
 		Netns:     options.Netns,
 		Logger:    options.Logger,
@@ -94,7 +93,6 @@ func (r *route) Nodes() []*Node {
 }
 
 type DialOptions struct {
-	Timeout   time.Duration
 	Interface string
 	Netns     string
 	SockOpts  *SockOpts
@@ -102,12 +100,6 @@ type DialOptions struct {
 }
 
 type DialOption func(opts *DialOptions)
-
-func TimeoutDialOption(d time.Duration) DialOption {
-	return func(opts *DialOptions) {
-		opts.Timeout = d
-	}
-}
 
 func InterfaceDialOption(ifName string) DialOption {
 	return func(opts *DialOptions) {

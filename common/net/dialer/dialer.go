@@ -26,7 +26,6 @@ type NetDialer struct {
 	Interface string
 	Netns     string
 	Mark      int
-	Timeout   time.Duration
 	DialFunc  func(ctx context.Context, network, addr string) (net.Conn, error)
 	Logger    logger.Logger
 }
@@ -62,11 +61,6 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 		}
 	}
 
-	timeout := d.Timeout
-	if timeout <= 0 {
-		timeout = DefaultTimeout
-	}
-
 	if d.DialFunc != nil {
 		return d.DialFunc(ctx, network, addr)
 	}
@@ -78,7 +72,6 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 	default:
 	}
 
-	deadline := time.Now().Add(timeout)
 	ifces := strings.Split(d.Interface, ",")
 	for _, ifce := range ifces {
 		strict := strings.HasSuffix(ifce, "!")
@@ -91,7 +84,7 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 		}
 
 		for _, ifAddr := range ifAddrs {
-			conn, err = d.dialOnce(ctx, network, addr, ifceName, ifAddr, deadline, log)
+			conn, err = d.dialOnce(ctx, network, addr, ifceName, ifAddr, log)
 			if err == nil {
 				return
 			}
@@ -103,17 +96,13 @@ func (d *NetDialer) Dial(ctx context.Context, network, addr string) (conn net.Co
 				!strings.Contains(err.Error(), "mismatched local address type") {
 				return
 			}
-
-			if time.Until(deadline) < 0 {
-				return
-			}
 		}
 	}
 
 	return
 }
 
-func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string, ifAddr net.Addr, deadline time.Time, log logger.Logger) (net.Conn, error) {
+func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string, ifAddr net.Addr, log logger.Logger) (net.Conn, error) {
 	if ifceName != "" {
 		log.Debugf("interface: %s %v/%s", ifceName, ifAddr, network)
 	}
@@ -157,7 +146,6 @@ func (d *NetDialer) dialOnce(ctx context.Context, network, addr, ifceName string
 		return nil, fmt.Errorf("dial: unsupported network %s", network)
 	}
 	netd := net.Dialer{
-		Deadline:  deadline,
 		LocalAddr: ifAddr,
 		Control: func(network, address string, c syscall.RawConn) error {
 			return c.Control(func(fd uintptr) {

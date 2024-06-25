@@ -103,6 +103,10 @@ func NewRouter(opts ...RouterOption) *Router {
 			opt(&r.options)
 		}
 	}
+	if r.options.Timeout == 0 {
+		r.options.Timeout = 15 * time.Second
+	}
+
 	if r.options.Logger == nil {
 		r.options.Logger = logger.Default().WithFields(map[string]any{"kind": "router"})
 	}
@@ -117,6 +121,12 @@ func (r *Router) Options() *RouterOptions {
 }
 
 func (r *Router) Dial(ctx context.Context, network, address string) (conn net.Conn, err error) {
+	if r.options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, r.options.Timeout)
+		defer cancel()
+	}
+
 	host := address
 	if h, _, _ := net.SplitHostPort(address); h != "" {
 		host = h
@@ -191,7 +201,6 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 			NetnsDialOption(r.options.Netns),
 			SockOptsDialOption(r.options.SockOpts),
 			LoggerDialOption(r.options.Logger),
-			TimeoutDialOption(r.options.Timeout),
 		)
 		if err == nil {
 			break
@@ -203,6 +212,12 @@ func (r *Router) dial(ctx context.Context, network, address string) (conn net.Co
 }
 
 func (r *Router) Bind(ctx context.Context, network, address string, opts ...BindOption) (ln net.Listener, err error) {
+	if r.options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, r.options.Timeout)
+		defer cancel()
+	}
+
 	count := r.options.Retries + 1
 	if count <= 0 {
 		count = 1

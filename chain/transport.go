@@ -3,7 +3,6 @@ package chain
 import (
 	"context"
 	"net"
-	"time"
 
 	net_dialer "github.com/go-gost/core/common/net/dialer"
 	"github.com/go-gost/core/connector"
@@ -16,7 +15,6 @@ type TransportOptions struct {
 	Netns    string
 	SockOpts *SockOpts
 	Route    Route
-	Timeout  time.Duration
 }
 
 type TransportOption func(*TransportOptions)
@@ -51,12 +49,6 @@ func RouteTransportOption(route Route) TransportOption {
 	}
 }
 
-func TimeoutTransportOption(timeout time.Duration) TransportOption {
-	return func(o *TransportOptions) {
-		o.Timeout = timeout
-	}
-}
-
 type Transport struct {
 	dialer    dialer.Dialer
 	connector connector.Connector
@@ -81,7 +73,6 @@ func (tr *Transport) Dial(ctx context.Context, addr string) (net.Conn, error) {
 	netd := &net_dialer.NetDialer{
 		Interface: tr.options.IfceName,
 		Netns:     tr.options.Netns,
-		Timeout:   tr.options.Timeout,
 	}
 	if tr.options.SockOpts != nil {
 		netd.Mark = tr.options.SockOpts.Mark
@@ -117,7 +108,6 @@ func (tr *Transport) Connect(ctx context.Context, conn net.Conn, network, addres
 	netd := &net_dialer.NetDialer{
 		Interface: tr.options.IfceName,
 		Netns:     tr.options.Netns,
-		Timeout:   tr.options.Timeout,
 	}
 	if tr.options.SockOpts != nil {
 		netd.Mark = tr.options.SockOpts.Mark

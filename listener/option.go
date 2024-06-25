@@ -27,6 +27,7 @@ type Options struct {
 	Service        string
 	ProxyProtocol  int
 	Netns          string
+	Router         *chain.Router
 }
 
 type Option func(opts *Options)
@@ -73,12 +74,6 @@ func ConnLimiterOption(limiter conn.ConnLimiter) Option {
 	}
 }
 
-func ChainOption(chain chain.Chainer) Option {
-	return func(opts *Options) {
-		opts.Chain = chain
-	}
-}
-
 func StatsOption(stats *stats.Stats) Option {
 	return func(opts *Options) {
 		opts.Stats = stats
@@ -106,5 +101,11 @@ func ProxyProtocolOption(ppv int) Option {
 func NetnsOption(netns string) Option {
 	return func(opts *Options) {
 		opts.Netns = netns
+	}
+}
+
+func RouterOption(router *chain.Router) Option {
+	return func(opts *Options) {
+		opts.Router = router
 	}
 }
