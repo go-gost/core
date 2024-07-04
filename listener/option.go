@@ -10,7 +10,7 @@ import (
 	"github.com/go-gost/core/limiter/conn"
 	"github.com/go-gost/core/limiter/traffic"
 	"github.com/go-gost/core/logger"
-	"github.com/go-gost/x/stats"
+	"github.com/go-gost/core/observer/stats"
 )
 
 type Options struct {
