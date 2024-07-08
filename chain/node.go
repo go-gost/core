@@ -41,7 +41,7 @@ type TLSNodeSettings struct {
 
 type NodeOptions struct {
 	Network    string
-	Transport  *Transport
+	Transport  Transporter
 	Bypass     bypass.Bypass
 	Resolver   resolver.Resolver
 	HostMapper hosts.HostMapper
@@ -53,7 +53,7 @@ type NodeOptions struct {
 
 type NodeOption func(*NodeOptions)
 
-func TransportNodeOption(tr *Transport) NodeOption {
+func TransportNodeOption(tr Transporter) NodeOption {
 	return func(o *NodeOptions) {
 		o.Transport = tr
 	}

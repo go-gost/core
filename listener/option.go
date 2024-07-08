@@ -27,7 +27,7 @@ type Options struct {
 	Service        string
 	ProxyProtocol  int
 	Netns          string
-	Router         *chain.Router
+	Router         chain.Router
 }
 
 type Option func(opts *Options)
@@ -104,7 +104,7 @@ func NetnsOption(netns string) Option {
 	}
 }
 
-func RouterOption(router *chain.Router) Option {
+func RouterOption(router chain.Router) Option {
 	return func(opts *Options) {
 		opts.Router = router
 	}

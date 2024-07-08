@@ -16,7 +16,7 @@ import (
 
 type Options struct {
 	Bypass      bypass.Bypass
-	Router      *chain.Router
+	Router      chain.Router
 	Auth        *url.Userinfo
 	Auther      auth.Authenticator
 	RateLimiter rate.RateLimiter
@@ -36,7 +36,7 @@ func BypassOption(bypass bypass.Bypass) Option {
 	}
 }
 
-func RouterOption(router *chain.Router) Option {
+func RouterOption(router chain.Router) Option {
 	return func(opts *Options) {
 		opts.Router = router
 	}
