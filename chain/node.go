@@ -22,11 +22,18 @@ type HTTPURLRewriteSetting struct {
 	Replacement string
 }
 
+type HTTPBodyRewriteSettings struct {
+	Type        string
+	Pattern     *regexp.Regexp
+	Replacement []byte
+}
+
 type HTTPNodeSettings struct {
-	Host    string
-	Header  map[string]string
-	Auther  auth.Authenticator
-	Rewrite []HTTPURLRewriteSetting
+	Host        string
+	Header      map[string]string
+	Auther      auth.Authenticator
+	RewriteURL  []HTTPURLRewriteSetting
+	RewriteBody []HTTPBodyRewriteSettings
 }
 
 type TLSNodeSettings struct {
