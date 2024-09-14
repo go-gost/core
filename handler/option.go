@@ -12,6 +12,7 @@ import (
 	"github.com/go-gost/core/logger"
 	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/observer"
+	"github.com/go-gost/core/recorder"
 )
 
 type Options struct {
@@ -24,6 +25,7 @@ type Options struct {
 	TLSConfig   *tls.Config
 	Logger      logger.Logger
 	Observer    observer.Observer
+	Recorders   []recorder.RecorderObject
 	Service     string
 	Netns       string
 }
@@ -81,6 +83,12 @@ func LoggerOption(logger logger.Logger) Option {
 func ObserverOption(observer observer.Observer) Option {
 	return func(opts *Options) {
 		opts.Observer = observer
+	}
+}
+
+func RecordersOption(recorders ...recorder.RecorderObject) Option {
+	return func(o *Options) {
+		o.Recorders = recorders
 	}
 }
 
