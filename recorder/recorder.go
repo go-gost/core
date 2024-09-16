@@ -30,6 +30,8 @@ type Options struct {
 	Direction       bool
 	TimestampFormat string
 	Hexdump         bool
+	HTTPBody        bool
+	MaxBodySize     int
 }
 
 const (
