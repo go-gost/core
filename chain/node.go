@@ -43,6 +43,7 @@ type TLSNodeSettings struct {
 		MinVersion   string
 		MaxVersion   string
 		CipherSuites []string
+		ALPN         []string
 	}
 }
 
