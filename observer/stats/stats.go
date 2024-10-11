@@ -19,7 +19,7 @@ const (
 type Stats struct {
 	updated      atomic.Bool
 	totalConns   atomic.Uint64
-	currentConns atomic.Int64
+	currentConns atomic.Uint64
 	inputBytes   atomic.Uint64
 	outputBytes  atomic.Uint64
 	totalErrs    atomic.Uint64
@@ -35,7 +35,7 @@ func (s *Stats) Add(kind Kind, n int64) {
 			s.totalConns.Add(uint64(n))
 		}
 	case KindCurrentConns:
-		s.currentConns.Add(n)
+		s.currentConns.Add(uint64(n))
 	case KindInputBytes:
 		if n > 0 {
 			s.inputBytes.Add(uint64(n))
@@ -70,6 +70,15 @@ func (s *Stats) Get(kind Kind) uint64 {
 		return s.totalErrs.Load()
 	}
 	return 0
+}
+
+func (s *Stats) Reset() {
+	s.updated.Store(false)
+	s.totalConns.Store(0)
+	s.currentConns.Store(0)
+	s.inputBytes.Store(0)
+	s.outputBytes.Store(0)
+	s.totalErrs.Store(0)
 }
 
 func (s *Stats) IsUpdated() bool {
