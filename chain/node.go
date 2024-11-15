@@ -8,6 +8,7 @@ import (
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/resolver"
+	"github.com/go-gost/core/routing"
 	"github.com/go-gost/core/selector"
 )
 
@@ -58,6 +59,8 @@ type NodeOptions struct {
 	HTTP       *HTTPNodeSettings
 	TLS        *TLSNodeSettings
 	Metadata   metadata.Metadata
+	Matcher    routing.Matcher
+	Priority   int
 }
 
 type NodeOption func(*NodeOptions)
@@ -113,6 +116,18 @@ func TLSNodeOption(tlsSettings *TLSNodeSettings) NodeOption {
 func MetadataNodeOption(md metadata.Metadata) NodeOption {
 	return func(o *NodeOptions) {
 		o.Metadata = md
+	}
+}
+
+func MatcherNodeOption(matcher routing.Matcher) NodeOption {
+	return func(o *NodeOptions) {
+		o.Matcher = matcher
+	}
+}
+
+func PriorityNodeOption(priority int) NodeOption {
+	return func(o *NodeOptions) {
+		o.Priority = priority
 	}
 }
 
