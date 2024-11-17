@@ -30,12 +30,12 @@ type HTTPBodyRewriteSettings struct {
 }
 
 type HTTPNodeSettings struct {
-	Host           string
-	Header         map[string]string
-	ResponseHeader map[string]string
-	Auther         auth.Authenticator
-	RewriteURL     []HTTPURLRewriteSetting
-	RewriteBody    []HTTPBodyRewriteSettings
+	Host                string
+	RequestHeader       map[string]string
+	ResponseHeader      map[string]string
+	Auther              auth.Authenticator
+	RewriteURL          []HTTPURLRewriteSetting
+	RewriteResponseBody []HTTPBodyRewriteSettings
 }
 
 type TLSNodeSettings struct {
