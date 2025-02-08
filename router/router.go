@@ -19,6 +19,7 @@ func IDOption(id string) Option {
 
 type Route struct {
 	// Net is the destination network, e.g. 192.168.0.0/16, 172.10.10.0/24.
+	// Deprecated by Dst.
 	Net *net.IPNet
 	// Dst is the destination.
 	Dst string
@@ -27,6 +28,6 @@ type Route struct {
 }
 
 type Router interface {
-	// GetRoute queries a route by destination IP address.
-	GetRoute(ctx context.Context, dst net.IP, opts ...Option) *Route
+	// GetRoute queries a route by destination.
+	GetRoute(ctx context.Context, dst string, opts ...Option) *Route
 }
