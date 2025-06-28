@@ -42,3 +42,27 @@ func (e *AcceptError) Temporary() bool {
 func (e *AcceptError) Unwrap() error {
 	return e.err
 }
+
+type BindError struct {
+	err error
+}
+
+func NewBindError(err error) error {
+	return &BindError{err: err}
+}
+
+func (e *BindError) Error() string {
+	return e.err.Error()
+}
+
+func (e *BindError) Timeout() bool {
+	return false
+}
+
+func (e *BindError) Temporary() bool {
+	return true
+}
+
+func (e *BindError) Unwrap() error {
+	return e.err
+}
