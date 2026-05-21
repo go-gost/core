@@ -1,1 +1,224 @@
 # The core library
+
+`github.com/go-gost/core` defines all interfaces and shared types for the GOST tunneling toolkit. It has **no implementations** and **zero third-party dependencies** — just Go's standard library. All concrete types live in the [`x/`](https://github.com/go-gost/x) module.
+
+## Interfaces
+
+The module defines every component of the GOST proxy pipeline:
+
+- **Service** — Wraps a listener + handler into a runnable server
+- **Listener** — Accepts inbound connections (TCP, TLS, HTTP/2/3, QUIC, etc.)
+- **Handler** — Processes inbound connections: authenticates, routes, forwards
+- **Dialer** — Dials from one node to the next proxy hop
+- **Connector** — Connects from the final node to the destination
+- **Chain / Route / Transporter / Node / Hop** — Proxy chain routing and node selection
+- **Router** — Top-level router combining chain, resolver, host mapping, retries, and timeouts
+- **Registry[T]** — Generic typed registry for component registration
+- **Selector / Strategy / Filter** — Generic load balancing and node selection
+
+Supporting types: `Authenticator`, `Admission`, `Bypass`, `Resolver`, `HostMapper`, `Recorder`, `Observer`, `Ingress`, `SD` (service discovery), `Logger`, `Metrics`, `Limiter` (conn/rate/traffic), `Stats`, `Matcher`, and `Router` (OS-level).
+
+## Architecture
+
+### Request Path (Forward Proxy)
+
+```
+ Client
+   │
+   ▼
+┌──────────────┐
+│   Listener   │  Accepts inbound connections
+│              │  (tcp, tls, ws, http2/3, quic, kcp, icmp, tun, udp, ...)
+└──────┬───────┘
+       │  net.Conn
+       ▼
+┌──────────────┐
+│   Handler    │  Authenticates, routes, and proxies traffic
+│              │  (http, socks4/5, ss, ssh, tunnel, tun, dns, redirect, ...)
+└──────┬───────┘
+       │  chain.Router.Dial(ctx, network, address)
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│                        chain.Router                          │
+│                                                              │
+│  Resolver ─► HostMapper ─► Recorders ─► Retries/Timeout      │
+│       │                                                      │
+│       ▼                                                      │
+│  ┌─────────┐   ┌─────┐   ┌──────────┐                        │
+│  │ Chainer │──►│ Hop │──►│  Node[]  │  (per chain hop)       │
+│  └─────────┘   └──┬──┘   └────┬─────┘                        │
+│                   │            │                             │
+│              Selector    chain.Transporter                   │
+│           (rr/random/    ┌──────────────────┐                │
+│            weighted/     │    Dialer        │  dial to next  │
+│            fail-filter)  │    Handshaker    │  proxy hop     │
+│                          │    Connector     │  connect to    │
+│                          │    Binder        │  destination   │
+│                          │    Multiplexer   │                │
+│                          └──────────────────┘                │
+└──────────────────────────────────────────────────────────────┘
+       │
+       ▼
+  Destination
+```
+
+### Reverse Proxy / Tunnel
+
+```
+ Client ◄── Tunnel ──┐
+                     │
+               ┌─────▼──────┐
+               │  Listener  │
+               └─────┬──────┘
+                     │
+               ┌─────▼──────┐
+               │  Handler   │
+               └─────┬──────┘
+                     │  chain.Router.Bind(ctx, network, address)
+                     ▼
+              chain.Router ─► chain.Route.Bind() ─► Transporter.Bind()
+                     │                                    │
+                     ▼                                    ▼
+               Destination                      net.Listener (on remote node)
+```
+
+### Service Composition
+
+```
+┌────────────────────────────────────────┐
+│               Service                  │
+│                                        │
+│  ┌──────────┐          ┌───────────┐   │
+│  │ Listener │─────────►│  Handler  │   │
+│  │          │ net.Conn │           │   │
+│  └──────────┘          └─────┬─────┘   │
+│                              │         │
+│                   chain.Router         │
+└────────────────────────────────────────┘
+
+Service = 1 Listener + 1 Handler + cross-cutting concerns:
+
+  Listener.Options:          Handler.Options:
+    Auth                        Auth / Auther
+    Auther                      Bypass
+    Admission                   Router
+    ConnLimiter                 RateLimiter
+    TrafficLimiter              TrafficLimiter
+    Stats                       TLSConfig
+    ProxyProtocol               Observer
+    Router (chain.Router)       Recorders
+    Logger                      Logger
+```
+
+### Interface Dependencies
+
+```
+                    ┌──────────┐
+                    │ Registry │  Generic[T]: Register / Get / GetAll
+                    └──────────┘
+                         │
+                         │ registers
+                         ▼
+  ┌─────────┐     ┌───────────┐     ┌────────────┐
+  │ Service │────►│ Listener  │     │  Handler   │
+  └─────────┘     └─────┬─────┘     └──────┬─────┘
+                        │                  │
+                        │  chain.Router    │
+                        └────────┬─────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │      chain.Router       │
+                    │  .Chainer               │
+                    │  .Resolver              │
+                    │  .HostMapper            │
+                    │  .Recorders             │
+                    └────────────┬────────────┘
+                                 │
+                    ┌────────────┴───────────┐
+                    │     chain.Chainer      │
+                    │     Route(ctx, ...)    │
+                    └────────────┬───────────┘
+                                 │
+                    ┌────────────┴───────────┐
+                    │     chain.Route        │
+                    │     Dial() / Bind()    │
+                    │     Nodes()            │
+                    └────────────┬───────────┘
+                                 │
+                    ┌────────────┴───────────┐
+                    │       hop.Hop          │
+                    │  Select(ctx, opts)     │
+                    │  uses selector.Selector│
+                    └────────────┬───────────┘
+                                 │
+                    ┌────────────┴───────────┐
+                    │      chain.Node        │
+                    │  .Transport            │
+                    │  .Bypass               │
+                    │  .Resolver / .HostMapper│
+                    │  .TLS / .HTTP settings │
+                    │  .Marker (fail count)  │
+                    └────────────┬───────────┘
+                                 │
+                    ┌────────────┴───────────┐
+                    │  chain.Transporter     │
+                    │  ┌──────────────────┐  │
+                    │  │ dialer.Dialer    │  │
+                    │  │ connector.Con..  │  │
+                    │  │ Handshaker       │  │
+                    │  │ Multiplexer      │  │
+                    │  │ Binder           │  │
+                    │  └──────────────────┘  │
+                    └────────────────────────┘
+```
+
+### Cross-cutting Interfaces
+
+```
+┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────┐
+│   Auth   │ │ Admission│ │   Bypass  │ │ Recorder │ │   Observer   │
+├──────────┤ ├──────────┤ ├───────────┤ ├──────────┤ ├──────────────┤
+│Authen... │ │Admit()   │ │Contains() │ │Record()  │ │Observe()     │
+│(user,pw) │ │(addr)    │ │IsWhite... │ │(bytes)   │ │(events)      │
+└──────────┘ └──────────┘ └───────────┘ └──────────┘ └──────────────┘
+
+┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────┐
+│ Resolver │ │HostMapper│ │  Logger   │ │ Metrics  │ │   Router     │
+├──────────┤ ├──────────┤ ├───────────┤ ├──────────┤ ├──────────────┤
+│Resolve() │ │Lookup()  │ │Tracef()   │ │Counter() │ │GetRoute()    │
+│(host→IP) │ │(host→IP) │ │Debugf()   │ │Gauge()   │ │(dst→gateway) │
+│          │ │          │ │Infof()... │ │Observer()│ │              │
+└──────────┘ └──────────┘ └───────────┘ └──────────┘ └──────────────┘
+
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│   conn.Limiter   │ │   rate.Limiter   │ │ traffic.Limiter  │
+├──────────────────┤ ├──────────────────┤ ├──────────────────┤
+│ Allow(n) bool    │ │ Allow(n) bool    │ │ Wait(ctx,n) int  │
+│ Limit() int      │ │ Limit() float64  │ │ Limit() / Set()  │
+│ (max conn count) │ │ (rate limiter)   │ │ (bandwidth)      │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+
+┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────┐
+│   SD     │ │ Ingress  │ │  Matcher  │ │  Stats   │ │   BufPool    │
+├──────────┤ ├──────────┤ ├───────────┤ ├──────────┤ ├──────────────┤
+│Register()│ │SetRule() │ │Match()    │ │Add/Get() │ │Get() / Put() │
+│Get()     │ │GetRule() │ │(*Request) │ │conn/bytes│ │(tiered sync. │
+│          │ │          │ │           │ │          │ │ Pool)        │
+└──────────┘ └──────────┘ └───────────┘ └──────────┘ └──────────────┘
+```
+
+## Usage
+
+```go
+import (
+    "github.com/go-gost/core/chain"
+    "github.com/go-gost/core/connector"
+    "github.com/go-gost/core/dialer"
+    "github.com/go-gost/core/handler"
+    "github.com/go-gost/core/listener"
+    "github.com/go-gost/core/registry"
+    "github.com/go-gost/core/service"
+)
+```
+
+All interfaces follow the functional options pattern. See [`x/`](https://github.com/go-gost/x) for implementations.

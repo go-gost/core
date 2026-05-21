@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	ErrClosed = errors.New("accpet on closed listener")
+	ErrClosed = errors.New("accept on closed listener")
 )
 
 // Listener is a server listener, just like a net.Listener.

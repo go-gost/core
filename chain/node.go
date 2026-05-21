@@ -77,7 +77,7 @@ func BypassNodeOption(bp bypass.Bypass) NodeOption {
 	}
 }
 
-func ResoloverNodeOption(resolver resolver.Resolver) NodeOption {
+func ResolverNodeOption(resolver resolver.Resolver) NodeOption {
 	return func(o *NodeOptions) {
 		o.Resolver = resolver
 	}

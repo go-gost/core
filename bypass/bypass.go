@@ -18,7 +18,7 @@ func WithService(service string) Option {
 	}
 }
 
-func WithHostOpton(host string) Option {
+func WithHostOption(host string) Option {
 	return func(opts *Options) {
 		opts.Host = host
 	}

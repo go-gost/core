@@ -92,6 +92,6 @@ func LoggerRouterOption(logger logger.Logger) RouterOption {
 
 type Router interface {
 	Options() *RouterOptions
-	Dial(ctx context.Context, network, address string) (net.Conn, error)
+	Dial(ctx context.Context, network, address string, opts ...DialOption) (net.Conn, error)
 	Bind(ctx context.Context, network, address string, opts ...BindOption) (net.Listener, error)
 }
