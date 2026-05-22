@@ -1,34 +1,42 @@
+// Package logger defines the structured logging interface and a global
+// default logger that components use when no explicit logger is configured.
 package logger
 
 import "sync/atomic"
 
-// LogFormat is format type
+// LogFormat is the log output format type.
 type LogFormat string
 
 const (
+	// TextFormat produces human-readable log output.
 	TextFormat LogFormat = "text"
+	// JSONFormat produces structured JSON log output.
 	JSONFormat LogFormat = "json"
 )
 
-// LogLevel is Logger Level type
+// LogLevel is the severity level of a log entry.
 type LogLevel string
 
 const (
-	// TraceLevel has more verbose message than debug level
+	// TraceLevel has more verbose messages than DebugLevel.
 	TraceLevel LogLevel = "trace"
-	// DebugLevel has verbose message
+	// DebugLevel is for verbose diagnostic messages.
 	DebugLevel LogLevel = "debug"
-	// InfoLevel is default log level
+	// InfoLevel is the default log level for informational messages.
 	InfoLevel LogLevel = "info"
-	// WarnLevel is for logging messages about possible issues
+	// WarnLevel is for messages about potential issues.
 	WarnLevel LogLevel = "warn"
-	// ErrorLevel is for logging errors
+	// ErrorLevel is for error messages indicating a failure.
 	ErrorLevel LogLevel = "error"
-	// FatalLevel is for logging fatal messages. The system shuts down after logging the message.
+	// FatalLevel is for fatal errors. The program typically exits after logging.
 	FatalLevel LogLevel = "fatal"
 )
 
+// Logger is the structured logging interface. Implementations may write to
+// files, stdout, sockets, or external log services.
 type Logger interface {
+	// WithFields returns a new Logger with the given fields attached to
+	// every subsequent log entry.
 	WithFields(map[string]any) Logger
 	Trace(args ...any)
 	Tracef(format string, args ...any)
@@ -42,27 +50,37 @@ type Logger interface {
 	Errorf(format string, args ...any)
 	Fatal(args ...any)
 	Fatalf(format string, args ...any)
+	// GetLevel returns the current log level.
 	GetLevel() LogLevel
+	// IsLevelEnabled reports whether messages at the given level are logged.
 	IsLevelEnabled(level LogLevel) bool
 }
 
 var (
+	// defaultLogger holds the global default Logger, stored atomically.
 	defaultLogger atomic.Value
 )
 
+// Default returns the global default Logger. It may return nil if no default
+// has been set.
 func Default() Logger {
 	v, _ := defaultLogger.Load().(Logger)
 	return v
 }
 
+// SetDefault sets the global default Logger.
 func SetDefault(logger Logger) {
 	defaultLogger.Store(logger)
 }
 
+// loggerGroup is a Logger that fans out messages to multiple underlying loggers.
 type loggerGroup struct {
 	loggers []Logger
 }
 
+// LoggerGroup creates a Logger that broadcasts all log calls to the given
+// set of loggers. This is useful for emitting logs to multiple destinations
+// simultaneously (e.g. both a file and stdout).
 func LoggerGroup(loggers ...Logger) Logger {
 	return &loggerGroup{
 		loggers: loggers,

@@ -1,3 +1,6 @@
+// Package bufpool provides a tiered sync.Pool for byte buffers, ranging from
+// 128 bytes to 65 KB. Using pooled buffers reduces GC pressure in high-throughput
+// proxy scenarios where buffers are allocated and discarded frequently.
 package bufpool
 
 import (
@@ -102,7 +105,9 @@ var (
 	}
 )
 
-// Get returns a buffer of specified size.
+// Get returns a byte buffer of at least the requested size.
+// The buffer is sourced from the smallest pool tier that satisfies the size,
+// or allocated fresh if no pool tier is large enough.
 func Get(size int) []byte {
 	for i := range pools {
 		if size <= pools[i].size {
@@ -114,6 +119,7 @@ func Get(size int) []byte {
 	return b
 }
 
+// Put returns a byte buffer to the appropriate pool tier based on its capacity.
 func Put(b []byte) {
 	for i := range pools {
 		if cap(b) == pools[i].size {
