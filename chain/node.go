@@ -30,7 +30,7 @@ type HTTPURLRewriteSetting struct {
 	Replacement string
 }
 
-// HTTPBodyRewriteSettings defines an HTTP response body rewrite rule.
+// HTTPBodyRewriteSettings defines an HTTP body rewrite rule.
 type HTTPBodyRewriteSettings struct {
 	// Type is the MIME type to match, e.g. "text/html".
 	Type string
@@ -54,6 +54,8 @@ type HTTPNodeSettings struct {
 	RewriteURL []HTTPURLRewriteSetting
 	// RewriteResponseBody holds the response body rewrite rules.
 	RewriteResponseBody []HTTPBodyRewriteSettings
+	// RewriteRequestBody holds the request body rewrite rules.
+	RewriteRequestBody []HTTPBodyRewriteSettings
 }
 
 // TLSNodeSettings holds TLS configuration for a node.

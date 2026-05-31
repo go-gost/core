@@ -27,6 +27,6 @@ type Stats interface {
 	Get(kind Kind) uint64
 	// IsUpdated reports whether any stat has changed since the last Reset.
 	IsUpdated() bool
-	// Reset clears the IsUpdated flag.
+	// Reset clears all counters to zero and resets the IsUpdated flag.
 	Reset()
 }
