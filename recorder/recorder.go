@@ -39,6 +39,9 @@ type RecorderObject struct {
 	Record string
 	// Options configures what data is recorded.
 	Options *Options
+	// Metadata is arbitrary metadata attached to the recorder,
+	// forwarded to plugin recorders on every Record call.
+	Metadata map[string]any
 }
 
 // Options configures a Recorder's behavior.
