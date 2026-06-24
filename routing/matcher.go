@@ -16,6 +16,8 @@ type Request struct {
 	ClientIP net.IP
 	// Host is the target hostname.
 	Host string
+	// Network is the connection network type ("tcp", "udp").
+	Network string
 	// Protocol is the proxy protocol.
 	Protocol string
 	// Method is the HTTP request method.
