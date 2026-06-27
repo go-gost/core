@@ -8,6 +8,7 @@ import (
 	"github.com/go-gost/core/hosts"
 	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/resolver"
+	"github.com/go-gost/core/rewriter"
 	"github.com/go-gost/core/routing"
 	"github.com/go-gost/core/selector"
 )
@@ -38,6 +39,9 @@ type HTTPBodyRewriteSettings struct {
 	Pattern *regexp.Regexp
 	// Replacement is the replacement bytes.
 	Replacement []byte
+	// Rewriter is an optional plugin-based rewriter.
+	// When set, Rewrite delegates to the plugin instead of using Pattern.
+	Rewriter rewriter.Rewriter
 }
 
 // HTTPNodeSettings holds HTTP-level configuration for a node.
