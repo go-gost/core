@@ -13,6 +13,7 @@ import (
 	"github.com/go-gost/core/metadata"
 	"github.com/go-gost/core/observer"
 	"github.com/go-gost/core/recorder"
+	"github.com/go-gost/core/rewriter"
 )
 
 // Options holds the initialization parameters for a Handler.
@@ -37,6 +38,8 @@ type Options struct {
 	Observer observer.Observer
 	// Recorders records traffic data.
 	Recorders []recorder.RecorderObject
+	// Rewriter rewrites traffic data.
+	Rewriter rewriter.Rewriter
 	// Service is the service name this handler belongs to.
 	Service string
 	// Netns is the network namespace name.
@@ -113,6 +116,13 @@ func ObserverOption(observer observer.Observer) Option {
 func RecordersOption(recorders ...recorder.RecorderObject) Option {
 	return func(o *Options) {
 		o.Recorders = recorders
+	}
+}
+
+// RewriterOption sets the Rewriter.
+func RewriterOption(rewriter rewriter.Rewriter) Option {
+	return func(opts *Options) {
+		opts.Rewriter = rewriter
 	}
 }
 
