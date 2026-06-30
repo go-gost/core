@@ -42,6 +42,10 @@ type HTTPBodyRewriteSettings struct {
 	// Rewriter is an optional plugin-based rewriter.
 	// When set, Rewrite delegates to the plugin instead of using Pattern.
 	Rewriter rewriter.Rewriter
+	// MaxChunkSize limits buffering for chunked/unknown-length non-streaming
+	// bodies. When > 0 and the body fits within this limit, the body is
+	// buffered and rewritten; if exceeded, the body passes through unchanged.
+	MaxChunkSize int
 }
 
 // HTTPNodeSettings holds HTTP-level configuration for a node.
