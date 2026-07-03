@@ -83,17 +83,18 @@ type TLSNodeSettings struct {
 
 // NodeOptions holds the initialization parameters for a Node.
 type NodeOptions struct {
-	Network    string
-	Transport  Transporter
-	Bypass     bypass.Bypass
-	Resolver   resolver.Resolver
-	HostMapper hosts.HostMapper
-	Filter     *NodeFilterSettings
-	HTTP       *HTTPNodeSettings
-	TLS        *TLSNodeSettings
-	Metadata   metadata.Metadata
-	Matcher    routing.Matcher
-	Priority   int
+	Network         string
+	Transport       Transporter
+	Bypass          bypass.Bypass
+	Resolver        resolver.Resolver
+	HostMapper      hosts.HostMapper
+	Filter          *NodeFilterSettings
+	HTTP            *HTTPNodeSettings
+	TLS             *TLSNodeSettings
+	Metadata        metadata.Metadata
+	Matcher         routing.Matcher
+	MatcherBodySize int
+	Priority        int
 }
 
 // NodeOption is a functional option for configuring NodeOptions.
@@ -166,6 +167,14 @@ func MetadataNodeOption(md metadata.Metadata) NodeOption {
 func MatcherNodeOption(matcher routing.Matcher) NodeOption {
 	return func(o *NodeOptions) {
 		o.Matcher = matcher
+	}
+}
+
+// MatcherBodySizeNodeOption sets the max request body prefix (bytes) exposed
+// to body matchers for this node. 0 disables body matching.
+func MatcherBodySizeNodeOption(size int) NodeOption {
+	return func(o *NodeOptions) {
+		o.MatcherBodySize = size
 	}
 }
 

@@ -33,6 +33,11 @@ type SelectOptions struct {
 	Query url.Values
 	// Header is the HTTP request headers.
 	Header http.Header
+	// Body is a size-capped prefix of the HTTP request body, populated by
+	// the caller when at least one node opts in to body matching via a
+	// non-zero chain.MatcherBodySize. Nil/empty when body matching is not
+	// in use.
+	Body []byte
 }
 
 // SelectOption is a functional option for configuring SelectOptions.
@@ -98,6 +103,14 @@ func QuerySelectOption(query url.Values) SelectOption {
 func HeaderSelectOption(header http.Header) SelectOption {
 	return func(o *SelectOptions) {
 		o.Header = header
+	}
+}
+
+// BodySelectOption sets the size-capped HTTP request body prefix used for
+// body matching.
+func BodySelectOption(body []byte) SelectOption {
+	return func(o *SelectOptions) {
+		o.Body = body
 	}
 }
 

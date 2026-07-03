@@ -28,6 +28,11 @@ type Request struct {
 	Query url.Values
 	// Header is the HTTP request headers.
 	Header http.Header
+	// Body is a size-capped prefix of the HTTP request body, populated by
+	// handlers that opt in to body matching (see hop.BodySizer). It is nil
+	// or empty when no node requests body matching or the request is bodyless.
+	// The full body is still forwarded; this prefix exists only for matching.
+	Body []byte
 }
 
 // Matcher decides whether a Request matches a routing rule. It is used at
