@@ -1,7 +1,9 @@
 package chain
 
 import (
+	"context"
 	"regexp"
+	"sync/atomic"
 
 	"github.com/go-gost/core/auth"
 	"github.com/go-gost/core/bypass"
@@ -195,6 +197,9 @@ type Node struct {
 	Addr    string
 	marker  selector.Marker
 	options NodeOptions
+
+	probeResult atomic.Value    // *ProbeResult
+	probeCancel context.CancelFunc
 }
 
 // NewNode creates a new Node with the given name and address.
@@ -234,4 +239,30 @@ func (node *Node) Copy() *Node {
 	n := &Node{}
 	*n = *node
 	return n
+}
+
+// ProbeResult implements chain.ProbeResultReader.
+func (node *Node) ProbeResult() *ProbeResult {
+	if v := node.probeResult.Load(); v != nil {
+		return v.(*ProbeResult)
+	}
+	return nil
+}
+
+// SetProbeResult stores the latest probe result.
+func (node *Node) SetProbeResult(r *ProbeResult) {
+	node.probeResult.Store(r)
+}
+
+// SetProbeCancel stores the cancel function for the node's probe goroutine.
+func (node *Node) SetProbeCancel(c context.CancelFunc) {
+	node.probeCancel = c
+}
+
+// Close stops the node's probe goroutine if one is running.
+func (node *Node) Close() error {
+	if node.probeCancel != nil {
+		node.probeCancel()
+	}
+	return nil
 }
