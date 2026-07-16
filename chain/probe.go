@@ -6,8 +6,9 @@ import "time"
 type ProbeType string
 
 const (
-	ProbeTypeTCP  ProbeType = "tcp"
+	ProbeTypeTCP ProbeType = "tcp"
 	ProbeTypeHTTP ProbeType = "http"
+	ProbeTypeCmd  ProbeType = "cmd"
 )
 
 // ProbeConfig holds the configuration for a node-level liveness probe.
@@ -21,6 +22,7 @@ type ProbeConfig struct {
 	HTTPHost       string
 	HTTPHeaders    map[string]string
 	ExpectedStatus int
+	Command        string
 }
 
 // ProbeResult records the outcome of a single probe attempt.
